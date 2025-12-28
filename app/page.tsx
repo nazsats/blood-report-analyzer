@@ -38,15 +38,13 @@ export default function Home() {
       <section className="relative min-h-screen flex items-center justify-center">
         {/* Full-screen Hero Image */}
         <div className="absolute inset-0 z-0">
-        <Image
-  src="/hero.png"
-  alt="Blood Report Illustration"
-  className="mx-auto mb-8 w-64 rounded-lg shadow-md"
-  width={256}          // Required for next/image
-  height={256}         // Required for next/image
-  priority             // Now valid!
-  loading="eager"
-/>
+          <img
+            src="/hero.png"
+            alt="Blood Report Illustration"
+            className="w-full h-full object-cover brightness-75 dark:brightness-50"
+            loading="eager"
+           
+          />
           {/* Gradient Overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent dark:from-black/80" />
           {/* Subtle vignette */}
