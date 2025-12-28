@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Firebase/Google Cloud secrets
+config/service-account.json
+*.json  # Optional: if you want to block all JSON files with secrets
+.env*
