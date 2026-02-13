@@ -18,7 +18,16 @@ import {
   VolumeX,
   Share2,
   Check,
+  Target,
+  Activity,
+  Utensils,
+  Moon,
+  Sun,
+  Dumbbell,
+  Pill,
+  Ban
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   PieChart,
@@ -35,6 +44,7 @@ import {
 import Skeleton from "react-loading-skeleton";
 import "react-loading-skeleton/dist/skeleton.css";
 import toast from "react-hot-toast";
+import ChatInterface from "@/components/ChatInterface";
 
 interface Test {
   test: string;
@@ -46,6 +56,26 @@ interface Test {
   advice?: string;
 }
 
+interface Nutrition {
+  focus: string;
+  breakfast: string[];
+  lunch: string[];
+  dinner: string[];
+  snacks: string[];
+  avoid: string[];
+}
+
+interface Lifestyle {
+  exercise: string;
+  sleep: string;
+  stress: string;
+}
+
+interface Supplement {
+  name: string;
+  reason: string;
+}
+
 interface Report {
   fileName: string;
   summary: string;
@@ -53,8 +83,10 @@ interface Report {
   overallScore?: number;
   tests: Test[];
   status: "processing" | "complete" | "error";
-  dietTips: string[];
-  dailySchedule: string[];
+  healthGoals?: string[];
+  nutrition?: Nutrition;
+  lifestyle?: Lifestyle;
+  supplements?: Supplement[];
   error?: string;
   shareId?: string;
 }
@@ -65,7 +97,7 @@ export default function ResultsPage() {
   const { reportId } = useParams<{ reportId: string }>();
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeSection, setActiveSection] = useState<"summary" | "tests" | "chart" | "diet" | "schedule">("summary");
+  const [activeSection, setActiveSection] = useState<"summary" | "tests" | "chart" | "nutrition" | "lifestyle">("summary");
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const router = useRouter();
@@ -172,7 +204,7 @@ export default function ResultsPage() {
     );
   }
 
-  const { status, summary, recommendation, overallScore, tests = [], dietTips = [], dailySchedule = [], fileName } = report;
+  const { status, summary, recommendation, overallScore, tests = [], fileName } = report;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -276,19 +308,18 @@ export default function ResultsPage() {
             { id: "summary" as const, label: "📋 Summary", icon: CheckCircle, count: 1 },
             { id: "tests" as const, label: "🔬 Tests", icon: Info, count: tests.length },
             { id: "chart" as const, label: "📊 Visuals", icon: PieChart, count: abnormalTests.length },
-            { id: "diet" as const, label: "🍎 Diet", icon: Apple, count: dietTips.length },
-            { id: "schedule" as const, label: "⏰ Plan", icon: Clock, count: dailySchedule.length },
+            { id: "nutrition" as const, label: "🥗 Nutrition", icon: Utensils, count: report.nutrition?.breakfast?.length || 0 },
+            { id: "lifestyle" as const, label: "🧘 Lifestyle", icon: Sun, count: 3 },
           ].map(({ id, label, icon: Icon, count }) => (
             <motion.button
               key={id}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => setActiveSection(id)}
-              className={`flex items-center gap-3 px-6 py-4 rounded-2xl transition-all font-medium shadow-md ${
-                activeSection === id
-                  ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xl"
-                  : "bg-gray-100/70 dark:bg-gray-700/70 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600/70 hover:shadow-lg border border-gray-200/50 dark:border-gray-600/50"
-              }`}
+              className={`flex items-center gap-3 px-6 py-4 rounded-2xl transition-all font-medium shadow-md ${activeSection === id
+                ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-xl"
+                : "bg-gray-100/70 dark:bg-gray-700/70 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600/70 hover:shadow-lg border border-gray-200/50 dark:border-gray-600/50"
+                }`}
             >
               <Icon className="h-5 w-5" />
               <span>{label}</span>
@@ -312,31 +343,68 @@ export default function ResultsPage() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -30 }}
             transition={{ duration: 0.3 }}
-            className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/50 dark:border-gray-700/50"
+            className="space-y-8"
           >
-            <h2 className="text-3xl font-black bg-gradient-to-r from-gray-800 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text mb-8 flex items-center gap-4">
-              📋 Your Friendly Summary
-            </h2>
-            <div className="prose prose-lg max-w-none text-gray-700 dark:text-gray-300 leading-relaxed">
-              <p className="whitespace-pre-wrap text-xl mb-8">{summary}</p>
-              {recommendation && (
-                <motion.div
-                  initial={{ scale: 0.95, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="p-8 bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-950 dark:to-yellow-950 rounded-2xl border-4 border-orange-200 dark:border-orange-800 shadow-xl"
-                >
-                  <h3 className="text-2xl font-bold text-orange-800 dark:text-orange-200 mb-4 flex items-center gap-3">
-                    🎯 Quick Action Plan
-                  </h3>
-                  <p className="text-xl">{recommendation}</p>
-                </motion.div>
-              )}
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Summary Card */}
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/50 dark:border-gray-700/50">
+                <h2 className="text-2xl font-black bg-gradient-to-r from-gray-800 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text mb-6 flex items-center gap-3">
+                  <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-blue-600">
+                    <Activity className="h-6 w-6" />
+                  </div>
+                  Analysis Summary
+                </h2>
+                <div className="prose dark:prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed">
+                  <ReactMarkdown>{summary}</ReactMarkdown>
+                </div>
+              </div>
+
+              {/* Health Goals Card */}
+              <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/50 dark:border-gray-700/50">
+                <h2 className="text-2xl font-black bg-gradient-to-r from-gray-800 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text mb-6 flex items-center gap-3">
+                  <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-xl text-green-600">
+                    <Target className="h-6 w-6" />
+                  </div>
+                  Top Health Goals
+                </h2>
+                <div className="space-y-4">
+                  {(report.healthGoals || []).length > 0 ? (
+                    report.healthGoals!.map((goal, i) => (
+                      <div key={i} className="flex items-start gap-4 p-4 bg-green-50 dark:bg-green-900/10 rounded-xl border border-green-100 dark:border-green-800/30">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-tl from-green-500 to-emerald-500 text-white flex items-center justify-center shrink-0 font-bold shadow-md">
+                          {i + 1}
+                        </div>
+                        <p className="text-gray-700 dark:text-gray-200 font-medium pt-1">{goal}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-500">
+                      <Target className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                      <p>No specific goals generated yet.</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
+
+            {recommendation && (
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="p-8 bg-gradient-to-br from-orange-50 to-yellow-50 dark:from-orange-950 dark:to-yellow-950 rounded-2xl border-4 border-orange-200 dark:border-orange-800 shadow-xl"
+              >
+                <h3 className="text-2xl font-bold text-orange-800 dark:text-orange-200 mb-4 flex items-center gap-3">
+                  🎯 Quick Action Plan
+                </h3>
+                <p className="text-xl text-gray-800 dark:text-gray-200">{recommendation}</p>
+              </motion.div>
+            )}
+
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.5 }}
-              className="mt-12 p-6 bg-gradient-to-r from-rose-50 to-red-50 dark:from-rose-950 dark:to-red-950 border-2 border-rose-200 dark:border-rose-800 rounded-2xl text-rose-800 dark:text-rose-200 text-lg flex items-start gap-3"
+              className="mt-6 p-6 bg-gradient-to-r from-rose-50 to-red-50 dark:from-rose-950 dark:to-red-950 border-2 border-rose-200 dark:border-rose-800 rounded-2xl text-rose-800 dark:text-rose-200 text-lg flex items-start gap-3"
             >
               <AlertTriangle className="h-8 w-8 flex-shrink-0 mt-0.5" />
               <span>I'm your AI health buddy, but always chat with your real doctor for personalized medical advice! 🩺</span>
@@ -387,13 +455,12 @@ export default function ResultsPage() {
                   >
                     {/* Status Badge */}
                     <div
-                      className={`absolute -top-3 left-6 px-4 py-2 rounded-2xl text-sm font-bold shadow-lg transform rotate-3 ${
-                        test.flag === "normal"
-                          ? "bg-gradient-to-r from-green-500 to-green-600 text-white"
-                          : test.flag === "high"
+                      className={`absolute -top-3 left-6 px-4 py-2 rounded-2xl text-sm font-bold shadow-lg transform rotate-3 ${test.flag === "normal"
+                        ? "bg-gradient-to-r from-green-500 to-green-600 text-white"
+                        : test.flag === "high"
                           ? "bg-gradient-to-r from-red-500 to-red-600 text-white"
                           : "bg-gradient-to-r from-orange-500 to-orange-600 text-white"
-                      }`}
+                        }`}
                     >
                       <span className="flex items-center gap-2">
                         {test.flag === "normal" ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
@@ -410,13 +477,12 @@ export default function ResultsPage() {
                     <div className="mb-8">
                       <div className="flex items-baseline gap-4 mb-2">
                         <span
-                          className={`text-5xl lg:text-6xl font-black ${
-                            test.flag === "normal"
-                              ? "text-green-600 dark:text-green-400"
-                              : test.flag === "high"
+                          className={`text-5xl lg:text-6xl font-black ${test.flag === "normal"
+                            ? "text-green-600 dark:text-green-400"
+                            : test.flag === "high"
                               ? "text-red-600 dark:text-red-400"
                               : "text-orange-600 dark:text-orange-400"
-                          }`}
+                            }`}
                         >
                           {test.value}
                         </span>
@@ -545,93 +611,150 @@ export default function ResultsPage() {
           </motion.section>
         )}
 
-        {/* Diet Tips */}
-        {status === "complete" && activeSection === "diet" && (
+        {/* Nutrition Section */}
+        {status === "complete" && activeSection === "nutrition" && report.nutrition && (
           <motion.section
-            key="diet"
+            key="nutrition"
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -30 }}
-            className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/50 dark:border-gray-700/50"
+            className="space-y-8"
           >
-            <h2 className="text-3xl font-black bg-gradient-to-r from-gray-800 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text mb-10 flex items-center gap-4">
-              <Apple className="h-12 w-12 text-green-500" /> Yummy Diet Tips – Made JUST FOR YOU! 🍎
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {dietTips.slice(0, 8).map((tip, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  className="group p-8 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 rounded-2xl border-2 border-green-200 dark:border-green-800 hover:shadow-xl hover:-translate-y-2 transition-all duration-300 shadow-lg"
-                >
-                  <div className="flex items-start gap-4 mb-4">
-                    <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg">
-                      <span className="text-2xl font-bold text-white">{i + 1}</span>
-                    </div>
-                    <p className="text-xl font-bold text-gray-800 dark:text-gray-100 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
-                      {tip}
-                    </p>
-                  </div>
-                </motion.div>
-              ))}
+            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 border border-white/50 dark:border-gray-700/50">
+              <h2 className="text-3xl font-black text-green-600 dark:text-green-400 mb-2 flex items-center gap-3">
+                <Utensils className="h-8 w-8" /> Nutrition Protocol
+              </h2>
+              <p className="text-xl text-gray-600 dark:text-gray-300">
+                Focus: <span className="font-bold text-gray-800 dark:text-white">{report.nutrition.focus}</span>
+              </p>
             </div>
-            {dietTips.length === 0 && (
-              <div className="text-center py-20">
-                <Apple className="h-20 w-20 text-green-400 mx-auto mb-6" />
-                <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">No specific diet tips yet</p>
-                <p className="text-lg mt-4 text-gray-500">All tests normal – keep eating colorful veggies & stay hydrated! 🌈</p>
+
+            <div className="grid md:grid-cols-2 gap-8">
+              {/* Meal Cards */}
+              <div className="space-y-6">
+                {/* Breakfast */}
+                <div className="bg-orange-50 dark:bg-orange-900/10 p-6 rounded-2xl border border-orange-100 dark:border-orange-800/30">
+                  <h3 className="font-bold text-lg text-orange-700 dark:text-orange-300 mb-4 flex items-center gap-2"><Sun className="h-5 w-5" /> Breakfast</h3>
+                  <ul className="space-y-2">
+                    {report.nutrition.breakfast.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                        <div className="h-1.5 w-1.5 rounded-full bg-orange-400 mt-2 shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {/* Lunch */}
+                <div className="bg-green-50 dark:bg-green-900/10 p-6 rounded-2xl border border-green-100 dark:border-green-800/30">
+                  <h3 className="font-bold text-lg text-green-700 dark:text-green-300 mb-4 flex items-center gap-2"><Utensils className="h-5 w-5" /> Lunch</h3>
+                  <ul className="space-y-2">
+                    {report.nutrition.lunch.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                        <div className="h-1.5 w-1.5 rounded-full bg-green-400 mt-2 shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            )}
+
+              <div className="space-y-6">
+                {/* Dinner */}
+                <div className="bg-blue-50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-100 dark:border-blue-800/30">
+                  <h3 className="font-bold text-lg text-blue-700 dark:text-blue-300 mb-4 flex items-center gap-2"><Moon className="h-5 w-5" /> Dinner</h3>
+                  <ul className="space-y-2">
+                    {report.nutrition.dinner.map((item, i) => (
+                      <li key={i} className="flex items-start gap-2 text-gray-700 dark:text-gray-300">
+                        <div className="h-1.5 w-1.5 rounded-full bg-blue-400 mt-2 shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                {/* Snacks & Avoid */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-purple-50 dark:bg-purple-900/10 p-4 rounded-2xl border border-purple-100 dark:border-purple-800/30">
+                    <h3 className="font-bold text-purple-700 dark:text-purple-300 mb-3 text-sm uppercase">Snacks</h3>
+                    <ul className="text-sm space-y-1">
+                      {report.nutrition.snacks.map((item, i) => <li key={i}>{item}</li>)}
+                    </ul>
+                  </div>
+                  <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-2xl border border-red-100 dark:border-red-800/30">
+                    <h3 className="font-bold text-red-700 dark:text-red-300 mb-3 flex items-center gap-1 text-sm uppercase"><Ban className="h-4 w-4" /> Limt / Avoid</h3>
+                    <ul className="text-sm space-y-1">
+                      {report.nutrition.avoid.map((item, i) => <li key={i}>{item}</li>)}
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
           </motion.section>
         )}
 
-        {/* Daily Schedule */}
-        {status === "complete" && activeSection === "schedule" && (
+        {/* Lifestyle & Supplements Section */}
+        {status === "complete" && activeSection === "lifestyle" && (
           <motion.section
-            key="schedule"
+            key="lifestyle"
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -30 }}
-            className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-white/50 dark:border-gray-700/50"
+            className="grid md:grid-cols-2 gap-8"
           >
-            <h2 className="text-3xl font-black bg-gradient-to-r from-gray-800 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text mb-10 flex items-center gap-4">
-              <Clock className="h-12 w-12 text-blue-500" /> Your Perfect Daily Routine – Custom Made! ⏰
-            </h2>
-            <div className="space-y-4 max-w-4xl mx-auto">
-              {dailySchedule.slice(0, 10).map((step, i) => (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, x: -50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="group flex items-start gap-6 p-8 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-3xl border-2 border-blue-200 dark:border-blue-800 hover:shadow-2xl hover:-translate-x-2 transition-all duration-500 shadow-xl"
-                >
-                  <div className="flex-shrink-0 w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-2xl mt-1 group-hover:scale-110 transition-transform">
-                    <span className="text-2xl font-black text-white">{i + 1}</span>
+            {/* Exercise & Habits */}
+            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 border border-white/50 dark:border-gray-700/50 space-y-8">
+              <h2 className="text-2xl font-black text-gray-800 dark:text-white mb-6 flex items-center gap-3">
+                <Activity className="h-7 w-7 text-blue-500" /> Lifestyle Habits
+              </h2>
+              {report.lifestyle && (
+                <>
+                  <div className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-2xl">
+                    <h4 className="font-bold text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-2"><Dumbbell className="h-5 w-5" /> Movement</h4>
+                    <p className="text-gray-700 dark:text-gray-300">{report.lifestyle.exercise}</p>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xl font-bold text-gray-800 dark:text-gray-100 mb-3 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      {step.split("–")[0]?.trim()}
-                    </p>
-                    <p className="text-lg text-gray-700 dark:text-gray-300 leading-relaxed">
-                      {step.split("–")[1]?.trim()}
-                    </p>
+                  <div className="p-6 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl">
+                    <h4 className="font-bold text-indigo-700 dark:text-indigo-300 mb-2 flex items-center gap-2"><Moon className="h-5 w-5" /> Sleep Hygiene</h4>
+                    <p className="text-gray-700 dark:text-gray-300">{report.lifestyle.sleep}</p>
                   </div>
-                </motion.div>
-              ))}
+                  <div className="p-6 bg-purple-50 dark:bg-purple-900/20 rounded-2xl">
+                    <h4 className="font-bold text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-2"><Sun className="h-5 w-5" /> Stress Management</h4>
+                    <p className="text-gray-700 dark:text-gray-300">{report.lifestyle.stress}</p>
+                  </div>
+                </>
+              )}
             </div>
-            {dailySchedule.length === 0 && (
-              <div className="text-center py-20">
-                <Clock className="h-20 w-20 text-blue-400 mx-auto mb-6" />
-                <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">No schedule yet</p>
-                <p className="text-lg mt-4 text-gray-500">Your tests look great – just maintain healthy habits! 🌟</p>
+
+            {/* Supplements */}
+            <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 border border-white/50 dark:border-gray-700/50">
+              <h2 className="text-2xl font-black text-gray-800 dark:text-white mb-6 flex items-center gap-3">
+                <Pill className="h-7 w-7 text-green-500" /> Smart Supplements
+              </h2>
+              <div className="space-y-4">
+                {report.supplements?.map((supp, i) => (
+                  <div key={i} className="flex items-start gap-4 p-4 border border-gray-100 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 font-bold shrink-0">
+                      {i + 1}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-gray-800 dark:text-gray-200">{supp.name}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{supp.reason}</p>
+                    </div>
+                  </div>
+                ))}
+                {(!report.supplements || report.supplements.length === 0) && (
+                  <p className="text-gray-500 italic">No specific supplements recommended based on this report.</p>
+                )}
               </div>
-            )}
+              <div className="mt-8 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border border-yellow-100 dark:border-yellow-800/30 text-sm text-yellow-800 dark:text-yellow-200 flex gap-3">
+                <AlertCircle className="h-5 w-5 shrink-0" />
+                <p>Always consult your doctor before starting any new supplements, especially if you are on medication.</p>
+              </div>
+            </div>
           </motion.section>
         )}
       </AnimatePresence>
+
+      {/* Chat Interface */}
+      {status === "complete" && <ChatInterface reportId={reportId as string} reportSummary={summary} />}
     </div>
   );
 }

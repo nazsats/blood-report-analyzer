@@ -15,32 +15,49 @@ export async function POST(req: NextRequest) {
   const reportId = uuidv4();
 
   try {
-    console.log('STEP 1: Request received');
-
     const form = await req.formData();
     const file = form.get('file') as File;
     if (!file) {
-      console.log('ERROR: No file');
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    }
+
+    if (!file.type.startsWith('image/')) {
+      return NextResponse.json({ error: 'Only image files are supported (JPG, PNG, etc.)' }, { status: 400 });
     }
 
     const token = req.headers.get('Authorization')?.replace('Bearer ', '');
     if (!token) {
-      console.log('ERROR: No token');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     let uid: string;
+    let decoded: any;
     try {
-      const decoded = await getAdminApp().auth().verifyIdToken(token);
+      decoded = await getAdminApp().auth().verifyIdToken(token);
       uid = decoded.uid;
-      console.log('STEP 2: TOKEN VERIFIED → UID:', uid);
     } catch (e: any) {
-      console.error('TOKEN ERROR:', e.message);
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
-    console.log('STEP 3: Writing to Firestore...');
+    // Check user doc and pro/free limit
+    const userRef = adminDb.collection('users').doc(uid);
+    let userDoc = await userRef.get();
+    if (!userDoc.exists) {
+      await userRef.set({
+        freeUploadsUsed: 0,
+        pro: false,
+        email: decoded.email,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      userDoc = await userRef.get(); // Refresh
+    }
+    const userData = userDoc.data() || { freeUploadsUsed: 0, pro: false };
+
+    if (!userData.pro && userData.freeUploadsUsed >= 1) {
+      return NextResponse.json({ error: 'Upgrade to Pro for more uploads' }, { status: 403 });
+    }
+
+    // Proceed with report creation
     const reportRef = adminDb.collection('reports').doc(reportId);
     await reportRef.set({
       userId: uid,
@@ -48,118 +65,125 @@ export async function POST(req: NextRequest) {
       status: 'processing',
       createdAt: FieldValue.serverTimestamp(),
     });
-    console.log('STEP 4: Firestore write OK');
 
-    console.log('STEP 5: Processing image with sharp...');
     const buffer = Buffer.from(await file.arrayBuffer());
     const processedImage = await sharp(buffer)
       .resize({ width: 800, fit: 'inside' })
       .jpeg({ quality: 80 })
       .toBuffer();
-    console.log('STEP 6: Image processed');
 
     const base64 = processedImage.toString('base64');
-    console.log('STEP 7: Sending to OpenAI...');
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      // Inside the openai.chat.completions.create call
-messages: [
-  {
-    role: 'system',
-    content: `You are a helpful blood test analyzer. Extract EVERY test you see, even if partial.
-Be very lenient with formatting. If a test name or value is unclear, still include it with best guess.
-Always return at least 3-10 tests if any are visible.
+      messages: [
+        {
+          role: 'system',
+          content: `You are a top-tier functional medicine doctor and nutritionist. Analyze this blood report.
+          
+EXTRACT ALL TESTS. Be precise.
 
-Return ONLY valid JSON with these fields:
+Then, create a highly personalized "Wellness Protocol" based SPECIFICALLY on the abnormal markers.
+If Vitamin D is low, recommend sunshine/supplements. If LDL is high, recommend fiber/oats. Be specific.
+
+Return ONLY valid JSON in this format:
 {
-  "summary": "Detailed friendly summary (2-4 sentences)",
-  "recommendation": "One overall suggestion",
-  "overallScore": number between 1-10,
-  "tests": array of objects, each with:
-    - "test": string (name)
-    - "value": number
-    - "unit": string or ""
-    - "range": string or ""
-    - "flag": "normal"|"high"|"low"
-    - "explanation": short simple explanation
-    - "advice": short tip if abnormal
-  "dietTips": array of 4-6 strings
-  "dailySchedule": array of 5-7 strings
-}
-
-If no tests are detected, return an empty tests array and explain in summary.`
+  "summary": "Warm, encouraging, but professional summary (3-4 sentences).",
+  "recommendation": "The single most impactful thing they can do based on this report.",
+  "overallScore": number 1-10,
+  "tests": [
+    { "test": "Test Name", "value": "Value", "unit": "Unit", "range": "Range", "flag": "normal"|"high"|"low", "explanation": "Simple explanation", "advice": "Specific actionable tip" }
+  ],
+  "healthGoals": ["Goal 1", "Goal 2", "Goal 3"],
+  "nutrition": {
+    "focus": "e.g. Anti-inflammatory & Low Sugar",
+    "breakfast": ["Option 1", "Option 2"],
+    "lunch": ["Option 1", "Option 2"],
+    "dinner": ["Option 1", "Option 2"],
+    "snacks": ["Option 1"],
+    "avoid": ["Food A", "Food B"]
   },
-  // ... rest of your messages
+  "lifestyle": {
+    "exercise": "Specific workout recommendation (e.g. 'Zone 2 Cardio for heart health')",
+    "sleep": "Sleep hygiene tip",
+    "stress": "Stress management tip"
+  },
+  "supplements": [
+    { "name": "Supplement Name", "reason": "Why needed (based on X marker)" }
+  ]
+}
+`
+        },
         {
           role: 'user',
           content: [
-            { type: 'text', text: 'Analyze this blood report image thoughtfully.' },
+            { type: 'text', text: 'Analyze this blood report and give me a detailed protocol.' },
             { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64}` } },
           ],
         },
       ],
-      max_tokens: 2000,
-      temperature: 0.3,
-      response_format: { type: "json_object" },
+      max_tokens: 3000,
+      temperature: 0.4,
     });
 
     const raw = (completion.choices[0]?.message?.content || '{}')
       .replace(/```json|```/g, '')
       .trim();
 
-    console.log('STEP 8: OpenAI response:', raw);
-
-    let aiResult: any = { 
-      summary: 'Whoops, analysis took a detour!', 
-      recommendation: '', 
-      overallScore: 5, 
-      tests: [], 
-      dietTips: [],
-      dailySchedule: []
+    let aiResult: any = {
+      summary: 'Analysis failed to generate structure.',
+      recommendation: '',
+      overallScore: 5,
+      tests: [],
+      healthGoals: [],
+      nutrition: { breakfast: [], lunch: [], dinner: [], snacks: [], avoid: [] },
+      lifestyle: { exercise: '', sleep: '', stress: '' },
+      supplements: []
     };
     try {
       aiResult = JSON.parse(raw);
-      if (!Array.isArray(aiResult.tests)) aiResult.tests = [];
-      if (!Array.isArray(aiResult.dietTips)) aiResult.dietTips = [];
-      if (!Array.isArray(aiResult.dailySchedule)) aiResult.dailySchedule = [];
-    } catch (e) {
-      console.error('JSON Parse failed:', e);
-    }
+      // Safety checks for new structure
+      if (!aiResult.nutrition) aiResult.nutrition = { breakfast: [], lunch: [], dinner: [], snacks: [], avoid: [] };
+      if (!aiResult.lifestyle) aiResult.lifestyle = { exercise: '', sleep: '', stress: '' };
+      if (!Array.isArray(aiResult.supplements)) aiResult.supplements = [];
+      if (!Array.isArray(aiResult.healthGoals)) aiResult.healthGoals = [];
+    } catch (e) { }
 
-    console.log('STEP 9: Updating Firestore...');
     await reportRef.update({
       status: 'complete',
       summary: aiResult.summary,
       recommendation: aiResult.recommendation,
       overallScore: aiResult.overallScore,
       tests: aiResult.tests,
-      dietTips: aiResult.dietTips,
-      dailySchedule: aiResult.dailySchedule,
+      healthGoals: aiResult.healthGoals,
+      nutrition: aiResult.nutrition,
+      lifestyle: aiResult.lifestyle,
+      supplements: aiResult.supplements,
       updatedAt: FieldValue.serverTimestamp(),
     });
-    console.log('STEP 10: SUCCESS!');
 
-    // After reportRef.update
-const shareId = uuidv4().slice(0, 8); // Short unique ID
-await reportRef.update({ shareId });
+    const shareId = uuidv4();
+    await reportRef.update({ shareId });
 
-return NextResponse.json({ success: true, reportId, shareUrl: `https://your-app.com/share/${shareId}` });
+    // Increment free upload count if not pro (transactional)
+    if (!userData.pro) {
+      await adminDb.runTransaction(async (transaction) => {
+        const freshUserDoc = await transaction.get(userRef);
+        const freshData = freshUserDoc.data() || { freeUploadsUsed: 0 };
+        transaction.update(userRef, { freeUploadsUsed: freshData.freeUploadsUsed + 1 });
+      });
+    }
 
+    return NextResponse.json({ success: true, reportId, shareUrl: `https://your-app.com/share/${shareId}` });
 
   } catch (err: any) {
-    console.error('FATAL ERROR:', err.message);
-    console.error('STACK:', err.stack);
-
     try {
       await adminDb.collection('reports').doc(reportId).update({
         status: 'error',
         error: err.message,
       });
-    } catch {}
+    } catch { }
 
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
 }
-
-// Remove the generateDietAndSchedule function entirely, as AI now handles it

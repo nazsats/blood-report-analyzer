@@ -1,10 +1,9 @@
 // app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import { ThemeProvider } from "next-themes"; // Add this
+import { ThemeProvider } from "next-themes";
 import "./globals.css";
 import Header from "@/components/Header";
-
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,12 +18,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning> {/* Add suppressHydrationWarning */}
+    <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        
-          <Header />
-          <main className="min-h-screen">{children}</main>
+          <Header /><main className="min-h-screen">{children}</main>
         </ThemeProvider>
       </body>
     </html>
