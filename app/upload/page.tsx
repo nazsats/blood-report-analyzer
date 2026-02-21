@@ -56,6 +56,7 @@ export default function UploadPage() {
     setError("");
     try {
       const arrayBuffer = await pdfFile.arrayBuffer();
+      // @ts-ignore - pdfjs-dist/build/pdf.mjs doesn't have a declaration file in some versions
       const pdfjsLib = await import("pdfjs-dist/build/pdf.mjs");
       pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 

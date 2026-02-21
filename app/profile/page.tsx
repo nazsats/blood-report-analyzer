@@ -96,6 +96,7 @@ interface Profile {
   instagramUrl: string;
   twitterUrl: string;
   isProfileComplete: boolean;
+  resumeUrl?: string; // Added resume URL
 }
 
 const ProfileContent = () => {
@@ -118,7 +119,8 @@ const ProfileContent = () => {
     introduction: "",
     profileImageUrl: "", profilePhotos: [],
     linkedinUrl: "", instagramUrl: "", twitterUrl: "",
-    isProfileComplete: false
+    isProfileComplete: false,
+    resumeUrl: ""
   });
 
   useEffect(() => {
@@ -130,8 +132,6 @@ const ProfileContent = () => {
     if (user) {
       const fetchData = async () => {
         try {
-          // Check if user has explicit docs in 'users' collection (if you use that)
-          // Or just rely on Auth for basic info + local state for now if new
           const userDoc = await getDoc(doc(db, "users", user.uid));
           if (userDoc.exists()) {
             const data = userDoc.data() as Partial<Profile>;
@@ -190,6 +190,25 @@ const ProfileContent = () => {
     }
   };
 
+  const handleResumeUpload = async (file: File) => {
+    if (!file || !user) return;
+    const toastId = toast.loading("Uploading resume...");
+
+    try {
+      const storageRef = ref(storage, `resumes/${user.uid}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+
+      setProfile(prev => ({ ...prev, resumeUrl: url }));
+      await setDoc(doc(db, "users", user.uid), { resumeUrl: url }, { merge: true });
+
+      toast.success("Resume uploaded!", { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error("Upload failed", { id: toastId });
+    }
+  };
+
   const saveProfile = async () => {
     if (!user) return;
     setSaving(true);
@@ -235,9 +254,21 @@ const ProfileContent = () => {
                 {subcategory?.name || category?.name || "User"}
               </p>
             </div>
-            <Link href="/profile?edit=true" className="px-6 py-2 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-colors flex items-center gap-2">
-              <FaEdit /> Edit Profile
-            </Link>
+            <div className="flex gap-3">
+              {profile.resumeUrl && (
+                <a
+                  href={profile.resumeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
+                >
+                  <FaFileDownload /> Resume
+                </a>
+              )}
+              <Link href="/profile?edit=true" className="px-6 py-2 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-colors flex items-center gap-2">
+                <FaEdit /> Edit Profile
+              </Link>
+            </div>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
@@ -489,6 +520,30 @@ const ProfileContent = () => {
                         />
                       </div>
                     ))}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Resume / CV (Optional)</label>
+                  <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-500 transition-colors bg-gray-50">
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx"
+                      className="absolute inset-0 opacity-0 cursor-pointer"
+                      onChange={(e) => {
+                        if (e.target.files) handleResumeUpload(e.target.files[0]);
+                      }}
+                    />
+                    {profile.resumeUrl ? (
+                      <div className="flex items-center justify-center gap-2 text-green-600">
+                        <FaCheckCircle /> <span>Resume Uploaded</span>
+                      </div>
+                    ) : (
+                      <div className="text-gray-500">
+                        <FaFileAlt className="mx-auto text-2xl mb-2" />
+                        <span>Click to upload PDF or Docx</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

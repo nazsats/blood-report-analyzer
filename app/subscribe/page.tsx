@@ -229,9 +229,9 @@ export default function SubscribePage() {
       <div className="grid md:grid-cols-2 gap-10 max-w-4xl mx-auto">
         {/* Monthly Plan */}
         <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-10 border-2 border-indigo-200 dark:border-indigo-900 hover:shadow-2xl transition-all">
-          <h2 className="text-3xl font-bold mb-4 text-gray-800 dark:text-gray-100">Monthly</h2>
+          <h2 className="text-3xl font-bold mb-4 text-gray-800 dark:text-gray-100">Pro Health</h2>
           <div className="mb-6">
-            <span className="text-6xl font-black text-indigo-600 dark:text-indigo-400">₹49</span>
+            <span className="text-5xl font-black text-indigo-600 dark:text-indigo-400">$3.99</span>
             <span className="text-xl text-gray-600 dark:text-gray-400">/month</span>
           </div>
           <ul className="space-y-3 mb-8 text-gray-700 dark:text-gray-300">
@@ -241,7 +241,7 @@ export default function SubscribePage() {
             <li className="flex items-center gap-3">✅ Priority support</li>
           </ul>
           <button
-            onClick={() => handleSubscribe('plan_RzUkp2yUAjbehi', 'Monthly')}
+            onClick={() => handleSubscribe('plan_SFmGHeN34MjdIc', 'Monthly')}
             disabled={loading}
             className="w-full py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-lg font-bold rounded-2xl hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3"
           >
@@ -251,30 +251,30 @@ export default function SubscribePage() {
                 Processing...
               </>
             ) : (
-              "Subscribe Monthly"
+              "Subscribe Now"
             )}
           </button>
         </div>
 
-        {/* Yearly Plan - Best Value */}
+        {/* Family Plan - Best Value */}
         <div className="bg-gradient-to-br from-purple-700 via-indigo-600 to-purple-800 text-white rounded-3xl shadow-2xl p-10 relative overflow-hidden border-4 border-yellow-400 transform hover:scale-105 transition-all">
           <div className="absolute -top-4 -right-4 bg-yellow-400 text-black px-6 py-2 rounded-full font-bold text-sm rotate-12 shadow-lg">
-            BEST VALUE – SAVE 17%
+            BEST VALUE
           </div>
-          <h2 className="text-3xl font-bold mb-4">Yearly</h2>
+          <h2 className="text-3xl font-bold mb-4">Family</h2>
           <div className="mb-6">
-            <span className="text-6xl font-black">₹490</span>
-            <span className="text-xl opacity-90">/year</span>
+            <span className="text-5xl font-black">$9.99</span>
+            <span className="text-xl opacity-90">/month</span>
           </div>
-          <p className="mb-8 text-lg opacity-90">Just ₹41 per month!</p>
+          <p className="mb-8 text-lg opacity-90">Complete health tracking for up to 5 members!</p>
           <ul className="space-y-3 mb-8">
-            <li className="flex items-center gap-3">✅ Everything in Monthly</li>
-            <li className="flex items-center gap-3">✅ 2 months free</li>
-            <li className="flex items-center gap-3">✅ Best long-term value</li>
-            <li className="flex items-center gap-3">✅ Same great features</li>
+            <li className="flex items-center gap-3">✅ Everything in Pro</li>
+            <li className="flex items-center gap-3">✅ Up to 5 Family Members</li>
+            <li className="flex items-center gap-3">✅ Combined Reports</li>
+            <li className="flex items-center gap-3">✅ Genetic Risk Assessment</li>
           </ul>
           <button
-            onClick={() => handleSubscribe('plan_RzUl5N9LifiTS9', 'Yearly')}
+            onClick={() => handleSubscribe('plan_SFmGI5v0hq1BJ3', 'Family')}
             disabled={loading}
             className="w-full py-5 bg-white text-purple-700 text-lg font-bold rounded-2xl hover:shadow-2xl disabled:opacity-70 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3"
           >
@@ -284,7 +284,7 @@ export default function SubscribePage() {
                 Processing...
               </>
             ) : (
-              "Subscribe Yearly (Recommended)"
+              "Subscribe Family"
             )}
           </button>
         </div>
