@@ -16,13 +16,20 @@ export async function POST(req: NextRequest) {
 
   try {
     const form = await req.formData();
-    const file = form.get('file') as File;
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    const files = form.getAll('file') as File[];
+    const extractedText = form.get('extractedText') as string;
+
+    if (files.length === 0) {
+      return NextResponse.json({ error: 'No files uploaded' }, { status: 400 });
     }
 
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json({ error: 'Only image files are supported (JPG, PNG, etc.)' }, { status: 400 });
+    // Check if any file is invalid
+    for (const file of files) {
+      const isPDF = file.type === 'application/pdf';
+      const isImage = file.type.startsWith('image/');
+      if (!isImage && !isPDF) {
+        return NextResponse.json({ error: `File type ${file.type} not supported` }, { status: 400 });
+      }
     }
 
     const token = req.headers.get('Authorization')?.replace('Bearer ', '');
@@ -61,18 +68,37 @@ export async function POST(req: NextRequest) {
     const reportRef = adminDb.collection('reports').doc(reportId);
     await reportRef.set({
       userId: uid,
-      fileName: file.name,
+      fileName: files[0].name, // Main filename
       status: 'processing',
       createdAt: FieldValue.serverTimestamp(),
     });
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const processedImage = await sharp(buffer)
-      .resize({ width: 800, fit: 'inside' })
-      .jpeg({ quality: 80 })
-      .toBuffer();
+    let userContent: any[] = [{ type: 'text', text: 'Analyze this blood report and give me a detailed protocol.' }];
 
-    const base64 = processedImage.toString('base64');
+    for (const file of files) {
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const isPDF = file.type === 'application/pdf';
+      const isImage = file.type.startsWith('image/');
+
+      if (isImage) {
+        const processedImage = await sharp(buffer)
+          .resize({ width: 1200, fit: 'inside' })
+          .jpeg({ quality: 85 })
+          .toBuffer();
+
+        const base64 = processedImage.toString('base64');
+        userContent.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64}` } });
+      } else if (isPDF) {
+        // Fallback if client-side rendering somehow failed to convert to image
+        if (extractedText) {
+          // Already added outside the loop or we add it once here
+        }
+      }
+    }
+
+    if (extractedText) {
+      userContent.push({ type: 'text', text: `Extracted text context:\n\n${extractedText}` });
+    }
 
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
@@ -116,10 +142,7 @@ Return ONLY valid JSON in this format:
         },
         {
           role: 'user',
-          content: [
-            { type: 'text', text: 'Analyze this blood report and give me a detailed protocol.' },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64}` } },
-          ],
+          content: userContent,
         },
       ],
       max_tokens: 3000,

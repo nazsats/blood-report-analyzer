@@ -19,6 +19,9 @@ const LOADING_MESSAGES = [
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [pdfPages, setPdfPages] = useState<string[]>([]);
+  const [extractedText, setExtractedText] = useState<string>("");
+  const [isExtracting, setIsExtracting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -45,15 +48,74 @@ export default function UploadPage() {
     return () => unsubscribe();
   }, []);
 
+  const processPDF = async (pdfFile: File) => {
+    setIsExtracting(true);
+    setPreview(null);
+    setPdfPages([]);
+    setExtractedText("");
+    setError("");
+    try {
+      const arrayBuffer = await pdfFile.arrayBuffer();
+      const pdfjsLib = await import("pdfjs-dist/build/pdf.mjs");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+
+      const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+      const pdf = await loadingTask.promise;
+
+      const pageImages: string[] = [];
+      let fullText = "";
+
+      // Process all pages
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const scale = 1.5;
+        const viewport = page.getViewport({ scale });
+        const canvas = document.createElement("canvas");
+        const context = canvas.getContext("2d");
+
+        if (!context) throw new Error("Could not create canvas context");
+
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({
+          canvasContext: context,
+          viewport: viewport,
+        }).promise;
+
+        const base64Image = canvas.toDataURL("image/jpeg", 0.85);
+        pageImages.push(base64Image);
+
+        // Extract text context for each page
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map((item: any) => item.str).join(" ");
+        fullText += `--- Page ${i} ---\n${pageText}\n\n`;
+      }
+
+      setPdfPages(pageImages);
+      if (pageImages.length > 0) {
+        setPreview(pageImages[0]); // Show first page as main preview
+      }
+      setExtractedText(fullText);
+
+    } catch (err: any) {
+      console.error("PDF Processing Error:", err);
+      setError(`Failed to process PDF: ${err.message || "Unknown error"}. Please try an image instead.`);
+    } finally {
+      setIsExtracting(false);
+    }
+  };
+
   const handleFileChange = (selectedFile: File | null) => {
     if (!selectedFile) return;
-    // Allow images and PDF
     if (!selectedFile.type.startsWith("image/") && selectedFile.type !== "application/pdf") {
       setError("Please upload an image or PDF file.");
       return;
     }
     setError("");
     setFile(selectedFile);
+    setExtractedText("");
+    setPdfPages([]);
 
     if (selectedFile.type.startsWith("image/")) {
       const reader = new FileReader();
@@ -62,19 +124,39 @@ export default function UploadPage() {
       };
       reader.readAsDataURL(selectedFile);
     } else {
-      setPreview(null); // No preview for PDF
+      processPDF(selectedFile);
     }
   };
 
   const handleUpload = async () => {
-    if (!file || !user) return;
+    if (!file || !user || isExtracting) return;
     setUploading(true);
     setError("");
     setSuccess(false);
     setLoadingStep(0);
 
     const formData = new FormData();
-    formData.append("file", file);
+
+    // Support multi-page PDF by sending all rendered images
+    if (file.type === "application/pdf" && pdfPages.length > 0) {
+      try {
+        for (let i = 0; i < pdfPages.length; i++) {
+          const response = await fetch(pdfPages[i]);
+          const blob = await response.blob();
+          const imageFile = new File([blob], `${file.name.replace(/\.pdf$/i, "")}_page_${i + 1}.jpg`, { type: "image/jpeg" });
+          formData.append("file", imageFile);
+        }
+      } catch (err) {
+        console.error("Error converting PDF pages to files:", err);
+        formData.append("file", file); // Fallback to original PDF
+      }
+    } else {
+      formData.append("file", file);
+    }
+
+    if (extractedText) {
+      formData.append("extractedText", extractedText);
+    }
 
     try {
       const idToken = await user.getIdToken();
@@ -165,7 +247,7 @@ export default function UploadPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 p-8 sm:p-12 relative overflow-hidden"
+          className="bg-white dark:bg-gray-900 rounded-3xl shadow-xl border border-gray-200 dark:border-gray-800 p-6 sm:p-12 relative overflow-hidden"
         >
           {/* Background decoration */}
           <div className="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
@@ -184,7 +266,7 @@ export default function UploadPage() {
                 <div
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
-                  className="border-3 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-12 text-center hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all cursor-pointer group"
+                  className="border-3 border-dashed border-gray-300 dark:border-gray-700 rounded-2xl p-6 sm:p-12 text-center hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-all cursor-pointer group"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   <div className="h-20 w-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform duration-300">
@@ -234,9 +316,19 @@ export default function UploadPage() {
                     </div>
                   ) : (
                     <div className="h-64 flex flex-col items-center justify-center text-gray-500">
-                      <FileText className="h-16 w-16 mb-4 text-gray-400" />
-                      <p className="text-lg font-medium">{file.name}</p>
-                      <p className="text-sm">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                      <div className="relative">
+                        <FileText className="h-16 w-16 mb-4 text-blue-500" />
+                        <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm">
+                          PDF
+                        </div>
+                      </div>
+                      <p className="text-lg font-medium text-gray-900 dark:text-white mb-1">{file.name}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+
+                      <div className="mt-6 flex items-center gap-2 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-full">
+                        <Sparkles className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                        <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">AI Analysis Ready</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -244,13 +336,18 @@ export default function UploadPage() {
                 <div className="flex flex-col gap-4">
                   <button
                     onClick={handleUpload}
-                    disabled={uploading}
+                    disabled={uploading || isExtracting}
                     className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg rounded-xl hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
                     {uploading ? (
                       <>
                         <Loader2 className="h-5 w-5 animate-spin" />
                         Processing...
+                      </>
+                    ) : isExtracting ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                        Reading PDF...
                       </>
                     ) : (
                       <>
@@ -323,8 +420,8 @@ export default function UploadPage() {
                           x: 0
                         }}
                         className={`flex items-center gap-4 p-4 rounded-xl border transition-colors ${isActive
-                            ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
-                            : "border-transparent"
+                          ? "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+                          : "border-transparent"
                           }`}
                       >
                         <div className={`
