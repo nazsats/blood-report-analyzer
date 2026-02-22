@@ -1,210 +1,142 @@
 "use client";
 
 import { useAuth } from "@/hooks/useAuth";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, orderBy, getDocs } from "firebase/firestore";
 import { db, storage } from "@/lib/firebaseClient";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import {
-  FaUser, FaPhone, FaMapMarkerAlt, FaIdCard,
-  FaFileAlt, FaGraduationCap, FaCar, FaStar,
-  FaCheckCircle, FaEdit, FaCamera, FaFileDownload, FaArrowRight, FaArrowLeft,
-  FaMagic, FaHotel, FaBriefcase, FaUtensils, FaShoppingCart,
-  FaCut, FaMusic, FaConciergeBell, FaUserTie, FaCoffee, FaWineGlass,
-  FaGuitar, FaPalette, FaMicrophone, FaVideo, FaInstagram, FaLinkedin,
-  FaFacebook, FaTwitter, FaRuler,
-  FaChevronLeft, FaChevronRight, FaRunning, FaStore, FaSmile, FaBroom, FaCashRegister, FaShoppingBag, FaBox, FaBullhorn,
-  FaDumbbell, FaHandPaper, FaWalking, FaFilm, FaImage, FaPlane, FaKeyboard, FaHeadset,
-  FaCalculator, FaHandSparkles, FaSpa
-} from "react-icons/fa";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import {
+  User, Phone, Calendar, Activity, Heart, Pill,
+  AlertCircle, Edit3, Camera, Save, ChevronRight,
+  FileText, TrendingUp, Shield, Droplets, Upload,
+  Clock, Stethoscope, Brain, Target,
+  Mail, Loader2, ArrowLeft
+} from "lucide-react";
 
-// Profession Categories with Icons
-const PROFESSION_CATEGORIES = [
-  {
-    id: "medical",
-    name: "Medical & Health",
-    icon: FaUserTie,
-    color: "from-blue-500 to-cyan-500",
-    subcategories: [
-      { id: "doctor", name: "Doctor", icon: FaUserTie },
-      { id: "nurse", name: "Nurse", icon: FaUser },
-      { id: "pharmacist", name: "Pharmacist", icon: FaBriefcase },
-      { id: "therapist", name: "Therapist", icon: FaSpa },
-      { id: "technician", name: "Lab Technician", icon: FaBox }
-    ]
-  },
-  {
-    id: "office_work",
-    name: "Office Work",
-    icon: FaBriefcase,
-    color: "from-gray-500 to-slate-500",
-    subcategories: [
-      { id: "admin_assistant", name: "Administrative Assistant", icon: FaUser },
-      { id: "receptionist", name: "Receptionist", icon: FaConciergeBell },
-      { id: "manager", name: "Manager", icon: FaBriefcase },
-      { id: "accountant", name: "Accountant", icon: FaCalculator }
-    ]
-  },
-  {
-    id: "lifestyle",
-    name: "Lifestyle & Fitness",
-    icon: FaDumbbell,
-    color: "from-green-500 to-emerald-500",
-    subcategories: [
-      { id: "trainer", name: "Personal Trainer", icon: FaDumbbell },
-      { id: "nutritionist", name: "Nutritionist", icon: FaUtensils },
-      { id: "coach", name: "Life Coach", icon: FaStar }
-    ]
-  },
-  {
-    id: "other",
-    name: "Other",
-    icon: FaStar,
-    color: "from-purple-500 to-pink-500",
-    subcategories: [
-      { id: "student", name: "Student", icon: FaGraduationCap },
-      { id: "retired", name: "Retired", icon: FaCoffee },
-      { id: "freelancer", name: "Freelancer", icon: FaBriefcase }
-    ]
-  }
-];
-
-interface Profile {
+interface HealthProfile {
   firstName: string;
   lastName: string;
   email: string;
   phoneNumber: string;
-  professionCategory: string;
-  professionSubcategory: string;
-  nationality: string;
-  city: string;
-  openToWorkIn: string[];
   gender: string;
   dateOfBirth: string;
-  languagesSpoken: string[];
-  hasInsurance: boolean;
-  healthIssues: string;
-  introduction: string;
+  bloodType: string;
+  chronicConditions: string;
+  currentMedications: string;
+  allergies: string;
+  emergencyContact: string;
   profileImageUrl: string;
-  profilePhotos: string[];
-  linkedinUrl: string;
-  instagramUrl: string;
-  twitterUrl: string;
   isProfileComplete: boolean;
-  resumeUrl?: string; // Added resume URL
 }
 
-const ProfileContent = () => {
+interface ReportStats {
+  totalReports: number;
+  avgScore: number;
+  bestScore: number;
+  latestRisk: string;
+  latestScore: number;
+}
+
+const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"];
+
+const defaultProfile: HealthProfile = {
+  firstName: "", lastName: "", email: "", phoneNumber: "",
+  gender: "", dateOfBirth: "", bloodType: "",
+  chronicConditions: "", currentMedications: "", allergies: "",
+  emergencyContact: "", profileImageUrl: "", isProfileComplete: false,
+};
+
+function calcAge(dob: string): string {
+  if (!dob) return "—";
+  const age = Math.floor((Date.now() - new Date(dob).getTime()) / (365.25 * 24 * 60 * 60 * 1000));
+  return `${age} yrs`;
+}
+
+const RISK_COLORS: Record<string, string> = {
+  low: "text-green-400",
+  moderate: "text-amber-400",
+  high: "text-red-400",
+  critical: "text-red-500",
+};
+
+export default function ProfilePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const isEditMode = searchParams.get("edit") === "true";
-
-  const [currentStep, setCurrentStep] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
   const [loadingData, setLoadingData] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
-
-  const [profile, setProfile] = useState<Profile>({
-    firstName: "", lastName: "", email: "", phoneNumber: "",
-    professionCategory: "", professionSubcategory: "",
-    nationality: "", city: "", openToWorkIn: [],
-    gender: "", dateOfBirth: "", languagesSpoken: [],
-    hasInsurance: false, healthIssues: "",
-    introduction: "",
-    profileImageUrl: "", profilePhotos: [],
-    linkedinUrl: "", instagramUrl: "", twitterUrl: "",
-    isProfileComplete: false,
-    resumeUrl: ""
-  });
+  const [profile, setProfile] = useState<HealthProfile>(defaultProfile);
+  const [stats, setStats] = useState<ReportStats | null>(null);
+  const [recentReports, setRecentReports] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/");
-      return;
-    }
+    if (!loading && !user) { router.push("/"); return; }
+    if (!user) return;
 
-    if (user) {
-      const fetchData = async () => {
-        try {
-          const userDoc = await getDoc(doc(db, "users", user.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data() as Partial<Profile>;
-            let photos = data.profilePhotos || [];
-            if (photos.length === 0 && data.profileImageUrl) {
-              photos = [data.profileImageUrl];
-            }
-            setProfile(prev => ({ ...prev, ...data, profilePhotos: photos, email: user.email || "" }));
-          } else {
-            setProfile(prev => ({ ...prev, email: user.email || "" }));
-          }
-        } catch (error) {
-          console.error("Error fetching profile:", error);
-          toast.error("Failed to load profile.");
-        } finally {
-          setLoadingData(false);
+    const fetchAll = async () => {
+      try {
+        // Fetch profile
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data() as Partial<HealthProfile>;
+          setProfile(prev => ({ ...prev, ...data, email: user.email || "" }));
+          if (!data.firstName) setIsEditing(true);
+        } else {
+          setIsEditing(true);
         }
-      };
-      fetchData();
-    }
+
+        // Fetch reports for stats
+        const q = query(
+          collection(db, "reports"),
+          where("userId", "==", user.uid),
+          orderBy("createdAt", "desc")
+        );
+        const snap = await getDocs(q);
+        const reports = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+        setRecentReports(reports.slice(0, 3));
+
+        if (reports.length > 0) {
+          const completed = reports.filter(r => r.status === "complete" && r.overallScore);
+          const scores = completed.map(r => r.overallScore as number);
+          setStats({
+            totalReports: reports.length,
+            avgScore: scores.length ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10 : 0,
+            bestScore: scores.length ? Math.max(...scores) : 0,
+            latestRisk: completed[0]?.riskLevel || "—",
+            latestScore: completed[0]?.overallScore || 0,
+          });
+        }
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load profile.");
+      } finally {
+        setLoadingData(false);
+      }
+    };
+    fetchAll();
   }, [user, loading, router]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    if (type === "checkbox") {
-      const checked = (e.target as HTMLInputElement).checked;
-      setProfile(prev => ({ ...prev, [name]: checked }));
-    } else {
-      setProfile(prev => ({ ...prev, [name]: value }));
-    }
+  const handleInput = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setProfile(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleFileUpload = async (file: File, index: number) => {
+  const handlePhotoUpload = async (file: File) => {
     if (!file || !user) return;
-
-    const toastId = toast.loading("Uploading photo...");
+    const toastId = toast.loading("Uploading photo…");
     try {
       const storageRef = ref(storage, `profiles/${user.uid}/${Date.now()}_${file.name}`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
-
-      const newPhotos = [...profile.profilePhotos];
-      while (newPhotos.length < index) newPhotos.push("");
-      newPhotos[index] = url;
-
-      const updates: any = { profilePhotos: newPhotos };
-      if (index === 0) updates.profileImageUrl = url;
-
-      setProfile(prev => ({ ...prev, ...updates }));
-      await setDoc(doc(db, "users", user.uid), updates, { merge: true });
-
-      toast.success("Photo uploaded!", { id: toastId });
-    } catch (err) {
-      console.error(err);
-      toast.error("Upload failed", { id: toastId });
-    }
-  };
-
-  const handleResumeUpload = async (file: File) => {
-    if (!file || !user) return;
-    const toastId = toast.loading("Uploading resume...");
-
-    try {
-      const storageRef = ref(storage, `resumes/${user.uid}/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-
-      setProfile(prev => ({ ...prev, resumeUrl: url }));
-      await setDoc(doc(db, "users", user.uid), { resumeUrl: url }, { merge: true });
-
-      toast.success("Resume uploaded!", { id: toastId });
-    } catch (err) {
-      console.error(err);
+      setProfile(prev => ({ ...prev, profileImageUrl: url }));
+      await setDoc(doc(db, "users", user.uid), { profileImageUrl: url }, { merge: true });
+      toast.success("Photo updated!", { id: toastId });
+    } catch {
       toast.error("Upload failed", { id: toastId });
     }
   };
@@ -213,378 +145,400 @@ const ProfileContent = () => {
     if (!user) return;
     setSaving(true);
     try {
-      await setDoc(doc(db, "users", user.uid), { ...profile, isProfileComplete: true }, { merge: true });
-      toast.success("Profile saved successfully!");
-      if (isEditMode) {
-        router.push("/profile");
-      } else {
-        router.refresh();
-      }
-    } catch (err) {
-      toast.error("Failed to save profile.");
+      await setDoc(doc(db, "users", user.uid), { ...profile, isProfileComplete: true, email: user.email }, { merge: true });
+      setProfile(prev => ({ ...prev, isProfileComplete: true }));
+      setIsEditing(false);
+      toast.success("Profile saved!");
+    } catch {
+      toast.error("Failed to save.");
     } finally {
       setSaving(false);
     }
   };
 
-  const nextStep = () => setCurrentStep(prev => prev + 1);
-  const prevStep = () => setCurrentStep(prev => prev - 1);
-
   if (loading || loadingData) {
-    return <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-spin w-16 h-16 border-t-4 border-blue-600 rounded-full"></div>
-    </div>;
-  }
-
-  // Render View Mode
-  if (!isEditMode && profile.isProfileComplete) {
-    const category = PROFESSION_CATEGORIES.find(c => c.id === profile.professionCategory);
-    const subcategory = category?.subcategories.find(s => s.id === profile.professionSubcategory);
-
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pb-20 pt-10">
-        <div className="container mx-auto px-4 max-w-5xl">
-          <div className="flex justify-between items-end mb-8">
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                {profile.firstName} {profile.lastName}
-              </h1>
-              <p className="text-gray-500 mt-2 flex items-center gap-2">
-                {subcategory?.icon && <subcategory.icon className="text-blue-500" />}
-                {subcategory?.name || category?.name || "User"}
-              </p>
-            </div>
-            <div className="flex gap-3">
-              {profile.resumeUrl && (
-                <a
-                  href={profile.resumeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-6 py-2 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors flex items-center gap-2"
-                >
-                  <FaFileDownload /> Resume
-                </a>
-              )}
-              <Link href="/profile?edit=true" className="px-6 py-2 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-200 transition-colors flex items-center gap-2">
-                <FaEdit /> Edit Profile
-              </Link>
-            </div>
-          </div>
-
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left Column: Photos */}
-            <div className="space-y-6">
-              <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-xl relative overflow-hidden">
-                <div className="aspect-square rounded-2xl overflow-hidden relative bg-gray-100">
-                  <AnimatePresence mode="wait">
-                    <motion.div
-                      key={currentPhotoIndex}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      className="w-full h-full relative"
-                    >
-                      {profile.profilePhotos[currentPhotoIndex] ? (
-                        <Image
-                          src={profile.profilePhotos[currentPhotoIndex]}
-                          alt="Profile"
-                          fill
-                          className="object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-300">
-                          <FaUser className="h-20 w-20" />
-                        </div>
-                      )}
-                    </motion.div>
-                  </AnimatePresence>
-
-                  {/* Slider Controls */}
-                  {profile.profilePhotos.length > 1 && (
-                    <>
-                      <button
-                        onClick={() => setCurrentPhotoIndex(prev => prev === 0 ? profile.profilePhotos.length - 1 : prev - 1)}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70"
-                      >
-                        <FaChevronLeft />
-                      </button>
-                      <button
-                        onClick={() => setCurrentPhotoIndex(prev => prev === profile.profilePhotos.length - 1 ? 0 : prev + 1)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70"
-                      >
-                        <FaChevronRight />
-                      </button>
-                    </>
-                  )}
-                </div>
-                <div className="flex justify-center gap-2 mt-4">
-                  {profile.profilePhotos.map((_, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setCurrentPhotoIndex(idx)}
-                      className={`w-2 h-2 rounded-full transition-colors ${idx === currentPhotoIndex ? 'bg-blue-600' : 'bg-gray-300'}`}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 shadow-lg">
-                <h3 className="font-bold mb-4 flex items-center gap-2"><FaUser className="text-blue-500" /> Personal Info</h3>
-                <div className="space-y-3 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Gender</span>
-                    <span className="font-medium capitalize">{profile.gender}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Nationality</span>
-                    <span className="font-medium">{profile.nationality}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">City</span>
-                    <span className="font-medium">{profile.city}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column: Details */}
-            <div className="lg:col-span-2 space-y-6">
-              {profile.introduction && (
-                <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg">
-                  <h3 className="font-bold text-xl mb-4 flex items-center gap-2"><FaFileAlt className="text-blue-500" /> About Me</h3>
-                  <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">
-                    {profile.introduction}
-                  </p>
-                </div>
-              )}
-
-              <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-lg">
-                <h3 className="font-bold text-xl mb-4 flex items-center gap-2"><FaCheckCircle className="text-blue-500" /> Preferences & Health</h3>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {profile.healthIssues && (
-                    <div className="col-span-2 p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
-                      <div className="font-medium text-red-600 dark:text-red-400 mb-1">Health Issues</div>
-                      <div className="text-sm">{profile.healthIssues}</div>
-                    </div>
-                  )}
-                  <div className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-xl flex items-center justify-between">
-                    <span className="text-gray-500">Medical Insurance</span>
-                    {profile.hasInsurance ? <FaCheckCircle className="text-green-500" /> : <span className="text-gray-400">No</span>}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="min-h-screen bg-[#0a0414] flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary-400" />
       </div>
     );
   }
 
-  // Render Edit/Create Mode
+  const scoreColor = (s: number) => s >= 8 ? "text-green-400" : s >= 6 ? "text-secondary-400" : s >= 4 ? "text-amber-400" : "text-red-400";
+
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-10">
-      <div className="container mx-auto px-4 max-w-3xl">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl overflow-hidden"
-        >
-          {/* Progress Bar */}
-          <div className="h-2 bg-gray-100">
-            <motion.div
-              className="h-full bg-gradient-to-r from-blue-600 to-indigo-600"
-              initial={{ width: 0 }}
-              animate={{ width: `${((currentStep + 1) / 5) * 100}%` }}
-            />
+    <div className="min-h-screen bg-[#0a0414] relative pt-24 pb-16 px-4">
+      {/* Ambient blobs */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/3 w-[400px] h-[400px] bg-primary-600/8 rounded-full blur-[100px]" />
+        <div className="absolute bottom-0 right-0 w-[350px] h-[350px] bg-secondary-600/6 rounded-full blur-[100px]" />
+      </div>
+
+      <div className="relative z-10 max-w-5xl mx-auto">
+
+        {/* ── Page header ── */}
+        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-center justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-300 text-xs font-semibold uppercase tracking-widest mb-3">
+              <User className="w-3 h-3" /> Health Profile
+            </div>
+            <h1 className="text-3xl font-black text-white">
+              {profile.firstName ? `${profile.firstName}'s Profile` : "My Profile"}
+            </h1>
           </div>
-
-          <div className="p-8">
-            {currentStep === 0 && (
-              <div className="space-y-6">
-                <h2 className="text-3xl font-bold">What best describes you?</h2>
-                <div className="grid grid-cols-2 gap-4">
-                  {PROFESSION_CATEGORIES.map(cat => (
-                    <button
-                      key={cat.id}
-                      onClick={() => {
-                        setProfile(prev => ({ ...prev, professionCategory: cat.id }));
-                        nextStep();
-                      }}
-                      className={`p-6 rounded-2xl border-2 text-left transition-all hover:scale-[1.02] ${profile.professionCategory === cat.id
-                        ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                        : 'border-transparent bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100'
-                        }`}
-                    >
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${cat.color} flex items-center justify-center text-white mb-4`}>
-                        <cat.icon className="text-xl" />
-                      </div>
-                      <div className="font-bold text-lg">{cat.name}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {currentStep === 1 && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 mb-8">
-                  <button onClick={prevStep} className="p-2 hover:bg-gray-100 rounded-full"><FaArrowLeft /></button>
-                  <h2 className="text-2xl font-bold">Select Specialization</h2>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  {PROFESSION_CATEGORIES.find(c => c.id === profile.professionCategory)?.subcategories.map(sub => (
-                    <button
-                      key={sub.id}
-                      onClick={() => {
-                        setProfile(prev => ({ ...prev, professionSubcategory: sub.id }));
-                        nextStep();
-                      }}
-                      className={`p-4 rounded-xl border text-left flex items-center gap-4 transition-all hover:border-blue-500 ${profile.professionSubcategory === sub.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                        }`}
-                    >
-                      <div className="p-2 bg-gray-100 rounded-lg text-gray-600"><sub.icon /></div>
-                      <span className="font-medium">{sub.name}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {currentStep === 2 && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 mb-6">
-                  <button onClick={prevStep} className="p-2 hover:bg-gray-100 rounded-full"><FaArrowLeft /></button>
-                  <h2 className="text-2xl font-bold">Basic Information</h2>
-                </div>
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">First Name</label>
-                    <input type="text" name="firstName" value={profile.firstName} onChange={handleInputChange} className="w-full p-3 rounded-xl border bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="John" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Last Name</label>
-                    <input type="text" name="lastName" value={profile.lastName} onChange={handleInputChange} className="w-full p-3 rounded-xl border bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Doe" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Phone</label>
-                    <input type="tel" name="phoneNumber" value={profile.phoneNumber} onChange={handleInputChange} className="w-full p-3 rounded-xl border bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Gender</label>
-                    <select name="gender" value={profile.gender} onChange={handleInputChange} className="w-full p-3 rounded-xl border bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none">
-                      <option value="">Select Gender</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Nationality</label>
-                    <input type="text" name="nationality" value={profile.nationality} onChange={handleInputChange} className="w-full p-3 rounded-xl border bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. American" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">City of Residence</label>
-                    <input type="text" name="city" value={profile.city} onChange={handleInputChange} className="w-full p-3 rounded-xl border bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. New York" />
-                  </div>
-                </div>
-                <button onClick={nextStep} className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors">
-                  Continue <FaArrowRight className="inline ml-2" />
-                </button>
-              </div>
-            )}
-
-            {currentStep === 3 && (
-              <div className="space-y-6">
-                <div className="flex items-center gap-4 mb-6">
-                  <button onClick={prevStep} className="p-2 hover:bg-gray-100 rounded-full"><FaArrowLeft /></button>
-                  <h2 className="text-2xl font-bold">Photos & Bio</h2>
-                </div>
-
-                <div className="space-y-4">
-                  <label className="text-sm font-medium">Profile Photos (Add up to 3)</label>
-                  <div className="flex gap-4">
-                    {[0, 1, 2].map((idx) => (
-                      <div key={idx} className="relative w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center overflow-hidden hover:border-blue-500 transition-colors cursor-pointer bg-gray-50">
-                        {profile.profilePhotos[idx] ? (
-                          <Image src={profile.profilePhotos[idx]} alt="Upload" fill className="object-cover" />
-                        ) : (
-                          <FaCamera className="text-gray-400 text-2xl" />
-                        )}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="absolute inset-0 opacity-0 cursor-pointer"
-                          onChange={(e) => {
-                            if (e.target.files) handleFileUpload(e.target.files[0], idx);
-                          }}
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Resume / CV (Optional)</label>
-                  <div className="relative border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-blue-500 transition-colors bg-gray-50">
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx"
-                      className="absolute inset-0 opacity-0 cursor-pointer"
-                      onChange={(e) => {
-                        if (e.target.files) handleResumeUpload(e.target.files[0]);
-                      }}
-                    />
-                    {profile.resumeUrl ? (
-                      <div className="flex items-center justify-center gap-2 text-green-600">
-                        <FaCheckCircle /> <span>Resume Uploaded</span>
-                      </div>
-                    ) : (
-                      <div className="text-gray-500">
-                        <FaFileAlt className="mx-auto text-2xl mb-2" />
-                        <span>Click to upload PDF or Docx</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">About You</label>
-                  <textarea
-                    name="introduction"
-                    value={profile.introduction}
-                    onChange={handleInputChange}
-                    rows={4}
-                    className="w-full p-3 rounded-xl border bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none"
-                    placeholder="Tell us about your health goals, lifestyle, etc."
-                  />
-                </div>
-
-                <div className="flex items-center gap-2 p-4 bg-blue-50 rounded-xl">
-                  <input type="checkbox" name="hasInsurance" checked={profile.hasInsurance} onChange={handleInputChange} className="w-5 h-5 text-blue-600 rounded" />
-                  <label className="text-sm font-medium">I have medical insurance</label>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Existing Health Issues (Optional)</label>
-                  <input type="text" name="healthIssues" value={profile.healthIssues} onChange={handleInputChange} className="w-full p-3 rounded-xl border bg-gray-50 focus:ring-2 focus:ring-blue-500 outline-none" placeholder="e.g. Diabetes, Hypertension" />
-                </div>
-
-                <button onClick={saveProfile} disabled={saving} className="w-full py-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
-                  {saving ? "Saving..." : <><FaCheckCircle /> Save Profile</>}
-                </button>
-              </div>
-            )}
-          </div>
+          {!isEditing && (
+            <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary-500/15 border border-primary-500/25 text-primary-300 hover:bg-primary-500/25 transition-all text-sm font-semibold">
+              <Edit3 className="w-4 h-4" /> Edit Profile
+            </motion.button>
+          )}
         </motion.div>
+
+        <AnimatePresence mode="wait">
+
+          {/* ── View Mode ── */}
+          {!isEditing && (
+            <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+
+              {/* Profile hero card */}
+              <div className="glass-card border border-white/10 rounded-3xl p-8">
+                <div className="flex flex-col sm:flex-row gap-6 items-start">
+                  {/* Avatar */}
+                  <div className="relative shrink-0">
+                    <div className="w-24 h-24 rounded-2xl overflow-hidden bg-primary-500/20 border border-primary-500/30 flex items-center justify-center">
+                      {profile.profileImageUrl ? (
+                        <Image src={profile.profileImageUrl} alt="Profile" fill className="object-cover" />
+                      ) : (
+                        <User className="w-10 h-10 text-primary-400" />
+                      )}
+                    </div>
+                    <label className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-primary-600 flex items-center justify-center cursor-pointer hover:bg-primary-500 transition-colors shadow-lg">
+                      <Camera className="w-3.5 h-3.5 text-white" />
+                      <input type="file" accept="image/*" className="hidden"
+                        onChange={e => { if (e.target.files?.[0]) handlePhotoUpload(e.target.files[0]); }} />
+                    </label>
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-black text-white">
+                      {profile.firstName || profile.lastName
+                        ? `${profile.firstName} ${profile.lastName}`.trim()
+                        : user?.displayName || "Anonymous User"}
+                    </h2>
+                    <div className="flex flex-wrap gap-4 mt-3">
+                      {profile.email && (
+                        <div className="flex items-center gap-1.5 text-gray-400 text-sm">
+                          <Mail className="w-3.5 h-3.5" /> {profile.email}
+                        </div>
+                      )}
+                      {profile.phoneNumber && (
+                        <div className="flex items-center gap-1.5 text-gray-400 text-sm">
+                          <Phone className="w-3.5 h-3.5" /> {profile.phoneNumber}
+                        </div>
+                      )}
+                      {profile.dateOfBirth && (
+                        <div className="flex items-center gap-1.5 text-gray-400 text-sm">
+                          <Calendar className="w-3.5 h-3.5" /> {calcAge(profile.dateOfBirth)}
+                        </div>
+                      )}
+                      {profile.gender && (
+                        <div className="flex items-center gap-1.5 text-gray-400 text-sm capitalize">
+                          <User className="w-3.5 h-3.5" /> {profile.gender}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Blood type badge */}
+                  {profile.bloodType && profile.bloodType !== "Unknown" && (
+                    <div className="flex flex-col items-center p-4 rounded-2xl bg-red-500/10 border border-red-500/20 shrink-0">
+                      <Droplets className="w-5 h-5 text-red-400 mb-1" />
+                      <p className="text-2xl font-black text-red-300">{profile.bloodType}</p>
+                      <p className="text-xs text-red-400/60">Blood Type</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Health Stats row */}
+              {stats && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { label: "Total Reports", value: stats.totalReports, icon: FileText, color: "text-secondary-400", bg: "bg-secondary-500/10", border: "border-secondary-500/20" },
+                    { label: "Avg Health Score", value: `${stats.avgScore}/10`, icon: TrendingUp, color: scoreColor(stats.avgScore), bg: "bg-accent-500/10", border: "border-accent-500/20" },
+                    { label: "Best Score", value: `${stats.bestScore}/10`, icon: Target, color: scoreColor(stats.bestScore), bg: "bg-primary-500/10", border: "border-primary-500/20" },
+                    { label: "Latest Risk", value: stats.latestRisk || "—", icon: Shield, color: RISK_COLORS[stats.latestRisk] || "text-gray-400", bg: "bg-white/5", border: "border-white/10" },
+                  ].map(({ label, value, icon: Icon, color, bg, border }) => (
+                    <motion.div key={label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+                      className={`glass-card border ${border} rounded-2xl p-5`}>
+                      <div className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center mb-3`}>
+                        <Icon className={`w-4 h-4 ${color}`} />
+                      </div>
+                      <p className={`text-xl font-black ${color} capitalize`}>{value}</p>
+                      <p className="text-gray-500 text-xs mt-1">{label}</p>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
+
+              {/* Medical info grid */}
+              <div className="grid md:grid-cols-2 gap-6">
+
+                {/* Health conditions */}
+                <div className="glass-card border border-white/10 rounded-2xl p-6 space-y-4">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Heart className="w-4 h-4 text-red-400" /> Medical History
+                  </h3>
+                  <InfoRow icon={<Activity className="w-3.5 h-3.5 text-amber-400" />} label="Chronic Conditions"
+                    value={profile.chronicConditions || "None reported"} />
+                  <InfoRow icon={<Pill className="w-3.5 h-3.5 text-blue-400" />} label="Current Medications"
+                    value={profile.currentMedications || "None"} />
+                  <InfoRow icon={<AlertCircle className="w-3.5 h-3.5 text-orange-400" />} label="Allergies"
+                    value={profile.allergies || "None known"} />
+                  <InfoRow icon={<Phone className="w-3.5 h-3.5 text-green-400" />} label="Emergency Contact"
+                    value={profile.emergencyContact || "Not set"} />
+                </div>
+
+                {/* Recent reports */}
+                <div className="glass-card border border-white/10 rounded-2xl p-6 space-y-4">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary-400" /> Recent Reports
+                  </h3>
+                  {recentReports.length === 0 ? (
+                    <div className="text-center py-8">
+                      <FileText className="w-10 h-10 text-gray-700 mx-auto mb-3" />
+                      <p className="text-gray-500 text-sm mb-4">No reports yet</p>
+                      <Link href="/upload"
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600/80 text-white text-sm font-semibold hover:bg-primary-600 transition-colors">
+                        <Upload className="w-3.5 h-3.5" /> Upload Report
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {recentReports.map((r, i) => (
+                        <Link key={i} href={`/results/${r.id}`}
+                          className="flex items-center gap-3 p-3 rounded-xl bg-white/4 border border-white/6 hover:bg-white/8 transition-all group">
+                          <div className="w-8 h-8 rounded-lg bg-primary-500/15 flex items-center justify-center shrink-0">
+                            <FileText className="w-4 h-4 text-primary-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-medium truncate">{r.fileName}</p>
+                            <p className="text-gray-500 text-xs">
+                              {r.createdAt?.toDate?.() ? new Date(r.createdAt.toDate()).toLocaleDateString() : "—"}
+                            </p>
+                          </div>
+                          {r.overallScore && (
+                            <span className={`text-sm font-bold ${scoreColor(r.overallScore)} shrink-0`}>{r.overallScore}/10</span>
+                          )}
+                          <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-colors shrink-0" />
+                        </Link>
+                      ))}
+                      <Link href="/history"
+                        className="flex items-center justify-center gap-2 text-primary-400 text-xs font-semibold hover:text-primary-300 transition-colors py-2">
+                        View all reports <ChevronRight className="w-3.5 h-3.5" />
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Quick Actions */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { label: "Upload Report", href: "/upload", icon: Upload, color: "from-primary-600 to-secondary-500", shadow: "shadow-primary-600/20" },
+                  { label: "View History", href: "/history", icon: Clock, color: "from-secondary-500 to-cyan-500", shadow: "shadow-secondary-500/20" },
+                  { label: "AI Analysis", href: "/upload", icon: Brain, color: "from-purple-600 to-primary-500", shadow: "shadow-purple-600/20" },
+                  { label: "Subscription", href: "/subscribe", icon: Stethoscope, color: "from-accent-500 to-emerald-500", shadow: "shadow-accent-500/20" },
+                ].map(({ label, href, icon: Icon, color, shadow }) => (
+                  <Link key={label} href={href}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl bg-gradient-to-br ${color} text-white shadow-lg ${shadow} hover:shadow-xl transition-all hover:-translate-y-0.5 text-center`}>
+                    <Icon className="w-6 h-6" />
+                    <span className="text-xs font-bold">{label}</span>
+                  </Link>
+                ))}
+              </div>
+
+            </motion.div>
+          )}
+
+          {/* ── Edit Mode ── */}
+          {isEditing && (
+            <motion.div key="edit" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+              className="glass-card border border-white/10 rounded-3xl overflow-hidden">
+
+              {/* Edit header */}
+              <div className="flex items-center justify-between p-6 border-b border-white/8">
+                <div className="flex items-center gap-3">
+                  {profile.isProfileComplete && (
+                    <button onClick={() => setIsEditing(false)} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all">
+                      <ArrowLeft className="w-4 h-4" />
+                    </button>
+                  )}
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Edit Health Profile</h2>
+                    <p className="text-gray-500 text-xs mt-0.5">Your data stays private & encrypted</p>
+                  </div>
+                </div>
+                <Shield className="w-5 h-5 text-green-400" />
+              </div>
+
+              <div className="p-6 space-y-8">
+
+                {/* Photo upload */}
+                <div className="flex items-center gap-5">
+                  <div className="relative">
+                    <div className="w-20 h-20 rounded-2xl overflow-hidden bg-primary-500/20 border border-primary-500/30 flex items-center justify-center">
+                      {profile.profileImageUrl ? (
+                        <Image src={profile.profileImageUrl} alt="Profile" fill className="object-cover" />
+                      ) : (
+                        <User className="w-8 h-8 text-primary-400" />
+                      )}
+                    </div>
+                    <label className="absolute -bottom-2 -right-2 w-7 h-7 rounded-xl bg-primary-600 flex items-center justify-center cursor-pointer hover:bg-primary-500 transition-colors">
+                      <Camera className="w-3 h-3 text-white" />
+                      <input type="file" accept="image/*" className="hidden"
+                        onChange={e => { if (e.target.files?.[0]) handlePhotoUpload(e.target.files[0]); }} />
+                    </label>
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold text-sm">Profile Photo</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Optional — helps personalise your experience</p>
+                  </div>
+                </div>
+
+                {/* Personal Information */}
+                <section>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <User className="w-3.5 h-3.5" /> Personal Information
+                  </h3>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <FormField label="First Name" name="firstName" value={profile.firstName} onChange={handleInput} placeholder="John" />
+                    <FormField label="Last Name" name="lastName" value={profile.lastName} onChange={handleInput} placeholder="Doe" />
+                    <FormField label="Phone Number" name="phoneNumber" value={profile.phoneNumber} onChange={handleInput} placeholder="+1 (555) 000-0000" type="tel" />
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-gray-400">Gender</label>
+                      <select name="gender" value={profile.gender} onChange={handleInput}
+                        className="w-full bg-white/5 border border-white/10 text-white px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 text-sm [color-scheme:dark]">
+                        <option value="">Select gender</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="non-binary">Non-binary</option>
+                        <option value="prefer-not-to-say">Prefer not to say</option>
+                      </select>
+                    </div>
+                    <FormField label="Date of Birth" name="dateOfBirth" value={profile.dateOfBirth} onChange={handleInput} type="date" />
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-gray-400">Blood Type</label>
+                      <select name="bloodType" value={profile.bloodType} onChange={handleInput}
+                        className="w-full bg-white/5 border border-white/10 text-white px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 text-sm [color-scheme:dark]">
+                        <option value="">Select blood type</option>
+                        {BLOOD_TYPES.map(bt => <option key={bt} value={bt}>{bt}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Medical Information */}
+                <section>
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                    <Heart className="w-3.5 h-3.5 text-red-400" /> Medical Information
+                  </h3>
+                  <div className="space-y-4">
+                    <TextAreaField
+                      label="Chronic Conditions"
+                      name="chronicConditions"
+                      value={profile.chronicConditions}
+                      onChange={handleInput}
+                      placeholder="e.g. Type 2 Diabetes, Hypertension, Thyroid disorder…"
+                      hint="This helps the AI give you more accurate, personalised analysis"
+                    />
+                    <TextAreaField
+                      label="Current Medications"
+                      name="currentMedications"
+                      value={profile.currentMedications}
+                      onChange={handleInput}
+                      placeholder="e.g. Metformin 500mg, Lisinopril 10mg…"
+                      hint="Used to detect medication-lab value interactions in your reports"
+                    />
+                    <TextAreaField
+                      label="Known Allergies"
+                      name="allergies"
+                      value={profile.allergies}
+                      onChange={handleInput}
+                      placeholder="e.g. Penicillin, Shellfish, Latex…"
+                    />
+                    <FormField
+                      label="Emergency Contact"
+                      name="emergencyContact"
+                      value={profile.emergencyContact}
+                      onChange={handleInput}
+                      placeholder="Name + phone number"
+                    />
+                  </div>
+                </section>
+
+                {/* AI Enhancement tip */}
+                <div className="flex items-start gap-3 p-4 rounded-2xl bg-primary-500/8 border border-primary-500/20">
+                  <Brain className="w-4 h-4 text-primary-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-primary-300 text-sm font-semibold">Improve your AI analysis</p>
+                    <p className="text-gray-500 text-xs mt-0.5">Filling in your medications and chronic conditions allows the AI to detect drug-lab interactions and provide much more personalised recommendations when you upload reports.</p>
+                  </div>
+                </div>
+
+                {/* Save button */}
+                <motion.button
+                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={saveProfile} disabled={saving}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-primary-600 to-secondary-500 text-white font-bold text-base shadow-lg shadow-primary-600/20 hover:shadow-primary-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-60">
+                  {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save className="w-5 h-5" />}
+                  {saving ? "Saving…" : "Save Health Profile"}
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
       </div>
     </div>
   );
 }
 
-export default function ProfilePage() {
+// ── Helper components ──────────────────────────────────────────────────────
+
+function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
   return (
-    <React.Suspense fallback={<div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-16 h-16 border-t-4 border-blue-600 rounded-full"></div></div>}>
-      <ProfileContent />
-    </React.Suspense>
+    <div className="flex items-start gap-3">
+      <div className="mt-0.5 shrink-0">{icon}</div>
+      <div>
+        <p className="text-gray-500 text-xs">{label}</p>
+        <p className="text-white text-sm mt-0.5 leading-relaxed">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+function FormField({ label, name, value, onChange, placeholder, type = "text" }:
+  { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder?: string; type?: string }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold text-gray-400">{label}</label>
+      <input type={type} name={name} value={value} onChange={onChange} placeholder={placeholder}
+        className="w-full bg-white/5 border border-white/10 text-white placeholder:text-gray-600 px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 focus:bg-white/8 transition-all text-sm [color-scheme:dark]" />
+    </div>
+  );
+}
+
+function TextAreaField({ label, name, value, onChange, placeholder, hint }:
+  { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; placeholder?: string; hint?: string }) {
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold text-gray-400">{label}</label>
+      {hint && <p className="text-xs text-gray-600">{hint}</p>}
+      <textarea name={name} value={value} onChange={onChange} placeholder={placeholder} rows={2}
+        className="w-full bg-white/5 border border-white/10 text-white placeholder:text-gray-600 px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 focus:bg-white/8 transition-all text-sm resize-none" />
+    </div>
   );
 }

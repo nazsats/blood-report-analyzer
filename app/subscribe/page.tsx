@@ -5,7 +5,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebaseClient";
 import confetti from "canvas-confetti";
-import { Loader2 } from "lucide-react";
+import { Loader2, Crown, Users, CheckCircle2, Sparkles, ArrowRight, Shield } from "lucide-react";
+import { motion } from "framer-motion";
+import Link from "next/link";
 
 declare global {
   interface Window {
@@ -13,290 +15,321 @@ declare global {
   }
 }
 
+const plans = [
+  {
+    id: "plan_SFmGHeN34MjdIc",
+    name: "Pro Health",
+    icon: Crown,
+    price: 3.99,
+    period: "/month",
+    description: "Deep insights for serious health optimisers.",
+    features: [
+      "Unlimited report uploads",
+      "Full history & trend charts",
+      "AI-powered plain English results",
+      "Diet, exercise & supplement plans",
+      "Priority processing",
+      "Export to PDF",
+    ],
+    popular: true,
+    gradient: "from-primary-600 to-secondary-500",
+    iconColor: "text-primary-300",
+    border: "border-primary-500/50",
+    ctaStyle: "bg-gradient-to-r from-primary-600 to-secondary-500 text-white shadow-lg shadow-primary-600/30 hover:shadow-primary-500/50",
+  },
+  {
+    id: "plan_SFmGI5v0hq1BJ3",
+    name: "Family",
+    icon: Users,
+    price: 9.99,
+    period: "/month",
+    description: "Complete health tracking for the whole family.",
+    features: [
+      "Everything in Pro",
+      "Up to 5 family members",
+      "Combined family health reports",
+      "Genetic risk assessment",
+      "24/7 priority support",
+    ],
+    popular: false,
+    gradient: "from-accent-600 to-secondary-600",
+    iconColor: "text-accent-400",
+    border: "border-white/10",
+    ctaStyle: "bg-white/8 hover:bg-white/14 text-white border border-white/12",
+  },
+];
+
 export default function SubscribePage() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
   const [checkingSub, setCheckingSub] = useState(true);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const router = useRouter();
 
-  // Load Razorpay script once
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
     script.async = true;
-    script.onload = () => console.log("Razorpay SDK loaded");
-    script.onerror = () => console.error("Failed to load Razorpay SDK");
     document.body.appendChild(script);
-
-    return () => {
-      document.body.removeChild(script);
-    };
+    return () => { document.body.removeChild(script); };
   }, []);
 
-  // Check if user is already Pro
   useEffect(() => {
     const checkSubscription = async () => {
-      if (!auth.currentUser) {
-        setCheckingSub(false);
-        return;
-      }
-
+      if (!auth.currentUser) { setCheckingSub(false); return; }
       try {
         const token = await auth.currentUser.getIdToken();
-        const res = await fetch('/api/check-subscription', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
+        const res = await fetch("/api/check-subscription", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ uid: auth.currentUser.uid }),
         });
-
         const data = await res.json();
-        if (data.active) {
-          setIsSubscribed(true);
-        }
+        if (data.active) setIsSubscribed(true);
       } catch (err) {
         console.error("Error checking subscription:", err);
       } finally {
         setCheckingSub(false);
       }
     };
-
     checkSubscription();
   }, []);
 
   const handleSubscribe = async (planId: string, planName: string) => {
-    if (!auth.currentUser) {
-      alert("Please sign in first");
-      router.push("/auth");
-      return;
-    }
+    if (!auth.currentUser) { router.push("/login"); return; }
+    if (isSubscribed) { router.push("/upload"); return; }
+    if (!window.Razorpay) { alert("Payment system loading. Try again in a few seconds."); return; }
 
-    if (isSubscribed) {
-      alert("You're already a Pro member! 🎉");
-      router.push("/upload");
-      return;
-    }
-
-    if (!window.Razorpay) {
-      alert("Payment system is loading... Please try again in a few seconds.");
-      return;
-    }
-
-    setLoading(true);
-
+    setLoading(planId);
     try {
       const token = await auth.currentUser.getIdToken();
       const uid = auth.currentUser.uid;
 
-      // Create subscription on server
-      const createRes = await fetch('/api/create-subscription', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
+      const createRes = await fetch("/api/create-subscription", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ planId, uid, planName }),
       });
 
       const createData = await createRes.json();
-      if (!createData.subscriptionId) {
-        throw new Error(createData.error || "Failed to create subscription");
-      }
+      if (!createData.subscriptionId) throw new Error(createData.error || "Failed to create subscription");
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
         subscription_id: createData.subscriptionId,
-        name: "Blood Report AI",
-        description: `Pro Plan - ${planName}`,
+        name: "BloodAI",
+        description: `${planName} Plan`,
         image: "/logo.png",
         handler: async (response: any) => {
           try {
-            // Verify payment on your server
-            const verifyRes = await fetch('/api/activate-subscription', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-              },
+            const verifyRes = await fetch("/api/activate-subscription", {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
               body: JSON.stringify({
                 subscriptionId: response.razorpay_subscription_id,
                 paymentId: response.razorpay_payment_id,
                 signature: response.razorpay_signature,
               }),
             });
-
             if (verifyRes.ok) {
-              // REAL SUCCESS – Celebrate! 🎊
               confetti({
-                particleCount: 150,
-                spread: 70,
+                particleCount: 200,
+                spread: 80,
                 origin: { y: 0.6 },
-                colors: ['#6366f1', '#8b5cf6', '#ec4899', '#10b981', '#f59e0b'],
-                ticks: 200,
-                gravity: 0.8,
-                scalar: 1.2,
+                colors: ["#7c3aed", "#06b6d4", "#4ade80", "#f59e0b"],
+                ticks: 300,
               });
-
-              alert("🎉 Payment Successful! Welcome to Pro! Unlimited uploads unlocked.");
               router.push("/upload");
             } else {
               const err = await verifyRes.json();
-              alert(`Payment failed: ${err.error || "Verification failed. Please contact support."}`);
+              alert(`Verification failed: ${err.error || "Contact support."}`);
             }
-          } catch (err) {
-            console.error("Verification error:", err);
+          } catch {
             alert("Network error during verification. Please contact support.");
           }
         },
         prefill: {
-          email: auth.currentUser.email || "",
-          contact: auth.currentUser.phoneNumber || "",
+          email: auth.currentUser?.email || "",
+          contact: auth.currentUser?.phoneNumber || "",
         },
-        theme: {
-          color: "#6366f1",
-        },
-        modal: {
-          ondismiss: () => {
-            alert("Payment cancelled or closed.");
-            setLoading(false);
-          },
-        },
+        theme: { color: "#7c3aed" },
+        modal: { ondismiss: () => setLoading(null) },
       };
 
       const rzp = new window.Razorpay(options);
-      rzp.on('payment.failed', (response: any) => {
-        alert(`Payment failed: ${response.error.description || 'Unknown error'}`);
-        setLoading(false);
+      rzp.on("payment.failed", (response: any) => {
+        alert(`Payment failed: ${response.error.description || "Unknown error"}`);
+        setLoading(null);
       });
-
       rzp.open();
     } catch (err: any) {
-      console.error("Subscription error:", err);
       alert("Error: " + (err.message || "Something went wrong"));
-      setLoading(false);
+      setLoading(null);
     }
   };
 
-  // Loading state
   if (checkingSub) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-900 dark:to-gray-800">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-indigo-600 mx-auto mb-4" />
-          <p className="text-lg text-gray-600 dark:text-gray-300">Checking your subscription...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0414]">
+        <div className="w-12 h-12 rounded-full border-2 border-primary-700 border-t-primary-400 animate-spin" />
       </div>
     );
   }
 
-  // Already subscribed view
   if (isSubscribed) {
     return (
-      <div className="max-w-4xl mx-auto py-16 px-4 text-center">
-        <div className="mb-8">
-          <div className="text-8xl mb-4">🎉</div>
-          <h1 className="text-5xl font-extrabold mb-4 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-            You're Already Pro!
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-300">
-            Enjoy unlimited reports, full history, and all premium features.
-          </p>
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0414] px-4">
+        <div className="fixed inset-0 pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-600/20 rounded-full blur-[100px]" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent-500/10 rounded-full blur-[100px]" />
         </div>
-        <button
-          onClick={() => router.push("/upload")}
-          className="px-10 py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-lg font-bold rounded-2xl hover:shadow-2xl transition-all"
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative text-center max-w-md glass-card border border-white/10 p-12 rounded-3xl z-10"
         >
-          Start Uploading Reports →
-        </button>
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-600/30 to-accent-500/20 border border-primary-500/30 flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="w-10 h-10 text-accent-400" />
+          </div>
+          <h1 className="text-3xl font-black text-white mb-3">You're Already Pro!</h1>
+          <p className="text-gray-400 mb-8">Enjoy unlimited reports, full history, and all premium features.</p>
+          <motion.button
+            whileHover={{ scale: 1.03 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={() => router.push("/upload")}
+            className="w-full py-4 bg-gradient-to-r from-primary-600 to-secondary-500 text-white font-bold rounded-2xl shadow-lg shadow-primary-500/30"
+          >
+            Analyze a Report →
+          </motion.button>
+        </motion.div>
       </div>
     );
   }
 
-  // Main subscribe view
   return (
-    <div className="max-w-5xl mx-auto py-16 px-4">
-      <div className="text-center mb-16">
-        <h1 className="text-5xl sm:text-6xl font-extrabold mb-6 bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-          Upgrade to Pro
-        </h1>
-        <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-          Unlock unlimited blood report analysis, full history, AI chat, and priority support.
-        </p>
+    <div className="min-h-screen bg-[#0a0414] relative overflow-hidden">
+      {/* Background */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-[-20%] left-[10%] w-[600px] h-[600px] bg-primary-600/15 rounded-full blur-[130px]" />
+        <div className="absolute top-[20%] right-[5%] w-[400px] h-[400px] bg-secondary-600/10 rounded-full blur-[120px]" />
+        <div className="absolute inset-0 dot-grid opacity-25" />
       </div>
 
-      <div className="grid md:grid-cols-2 gap-10 max-w-4xl mx-auto">
-        {/* Monthly Plan */}
-        <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-10 border-2 border-indigo-200 dark:border-indigo-900 hover:shadow-2xl transition-all">
-          <h2 className="text-3xl font-bold mb-4 text-gray-800 dark:text-gray-100">Pro Health</h2>
-          <div className="mb-6">
-            <span className="text-5xl font-black text-indigo-600 dark:text-indigo-400">$3.99</span>
-            <span className="text-xl text-gray-600 dark:text-gray-400">/month</span>
-          </div>
-          <ul className="space-y-3 mb-8 text-gray-700 dark:text-gray-300">
-            <li className="flex items-center gap-3">✅ Unlimited report uploads</li>
-            <li className="flex items-center gap-3">✅ Full history access</li>
-            <li className="flex items-center gap-3">✅ AI-powered explanations</li>
-            <li className="flex items-center gap-3">✅ Priority support</li>
-          </ul>
-          <button
-            onClick={() => handleSubscribe('plan_SFmGHeN34MjdIc', 'Monthly')}
-            disabled={loading}
-            className="w-full py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white text-lg font-bold rounded-2xl hover:shadow-xl disabled:opacity-70 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3"
+      <div className="relative z-10 max-w-5xl mx-auto py-32 px-4 sm:px-6">
+        {/* Hero */}
+        <div className="text-center mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm font-medium mb-6"
           >
-            {loading ? (
-              <>
-                <Loader2 className="h-6 w-6 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              "Subscribe Now"
-            )}
-          </button>
+            <Sparkles className="w-3.5 h-3.5" />
+            Upgrade to Pro
+          </motion.div>
+          <motion.h1
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-5xl sm:text-6xl font-black text-white tracking-tight mb-4"
+          >
+            Your health,
+            <span className="gradient-text"> fully unlocked</span>
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-gray-400 text-lg max-w-xl mx-auto"
+          >
+            Unlimited reports, personalized wellness protocols, trend tracking and AI chat — all for less than your morning coffee.
+          </motion.p>
         </div>
 
-        {/* Family Plan - Best Value */}
-        <div className="bg-gradient-to-br from-purple-700 via-indigo-600 to-purple-800 text-white rounded-3xl shadow-2xl p-10 relative overflow-hidden border-4 border-yellow-400 transform hover:scale-105 transition-all">
-          <div className="absolute -top-4 -right-4 bg-yellow-400 text-black px-6 py-2 rounded-full font-bold text-sm rotate-12 shadow-lg">
-            BEST VALUE
-          </div>
-          <h2 className="text-3xl font-bold mb-4">Family</h2>
-          <div className="mb-6">
-            <span className="text-5xl font-black">$9.99</span>
-            <span className="text-xl opacity-90">/month</span>
-          </div>
-          <p className="mb-8 text-lg opacity-90">Complete health tracking for up to 5 members!</p>
-          <ul className="space-y-3 mb-8">
-            <li className="flex items-center gap-3">✅ Everything in Pro</li>
-            <li className="flex items-center gap-3">✅ Up to 5 Family Members</li>
-            <li className="flex items-center gap-3">✅ Combined Reports</li>
-            <li className="flex items-center gap-3">✅ Genetic Risk Assessment</li>
-          </ul>
-          <button
-            onClick={() => handleSubscribe('plan_SFmGI5v0hq1BJ3', 'Family')}
-            disabled={loading}
-            className="w-full py-5 bg-white text-purple-700 text-lg font-bold rounded-2xl hover:shadow-2xl disabled:opacity-70 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-6 w-6 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              "Subscribe Family"
-            )}
-          </button>
-        </div>
-      </div>
+        {/* Plans */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          {plans.map((plan, i) => (
+            <motion.div
+              key={plan.id}
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 + i * 0.1 }}
+              className={`relative flex flex-col rounded-3xl border p-8 bg-white/3 backdrop-blur-xl transition-all duration-300 ${plan.border} ${plan.popular ? "shadow-2xl shadow-primary-500/20" : ""}`}
+            >
+              {plan.popular && (
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                  <div className="px-4 py-1.5 rounded-full bg-gradient-to-r from-primary-600 to-secondary-500 text-white text-xs font-bold shadow-lg tracking-wider uppercase">
+                    Best Value
+                  </div>
+                </div>
+              )}
 
-      <div className="text-center mt-16">
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          🔒 Secure payments via Razorpay • Cancel anytime • No hidden fees
-        </p>
-        <a href="/upload" className="mt-6 inline-block text-indigo-600 dark:text-indigo-400 underline hover:no-underline">
-          ← Back to upload
-        </a>
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-12 h-12 rounded-2xl bg-white/8 flex items-center justify-center">
+                  <plan.icon className={`w-6 h-6 ${plan.iconColor}`} />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-white">{plan.name}</h2>
+                  <p className="text-gray-500 text-sm">{plan.description}</p>
+                </div>
+              </div>
+
+              <div className="mb-8">
+                <div className="flex items-end gap-1">
+                  <span className="text-5xl font-black text-white">${plan.price}</span>
+                  <span className="text-gray-500 text-sm mb-2">{plan.period}</span>
+                </div>
+              </div>
+
+              <ul className="space-y-3 mb-8 flex-1">
+                {plan.features.map((f) => (
+                  <li key={f} className="flex items-start gap-3 text-sm">
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5 ${plan.popular ? "bg-primary-500/25" : "bg-white/8"}`}>
+                      <CheckCircle2 className={`w-3 h-3 ${plan.popular ? "text-primary-300" : "text-accent-400"}`} />
+                    </div>
+                    <span className="text-gray-300">{f}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => handleSubscribe(plan.id, plan.name)}
+                disabled={loading !== null}
+                className={`w-full py-4 rounded-2xl font-bold transition-all duration-200 flex items-center justify-center gap-2.5 disabled:opacity-60 disabled:cursor-not-allowed ${plan.ctaStyle}`}
+              >
+                {loading === plan.id ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Subscribe to {plan.name}
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </motion.button>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Trust footer */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.6 }}
+          className="mt-12 text-center space-y-4"
+        >
+          <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-600">
+            <div className="flex items-center gap-2"><Shield className="w-4 h-4 text-accent-500" />Secured by Razorpay</div>
+            <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-accent-500" />Cancel anytime</div>
+            <div className="flex items-center gap-2"><CheckCircle2 className="w-4 h-4 text-accent-500" />No hidden fees</div>
+          </div>
+          <Link href="/upload" className="inline-block text-gray-600 hover:text-gray-400 text-sm transition-colors">
+            ← Back to upload
+          </Link>
+        </motion.div>
       </div>
     </div>
   );
