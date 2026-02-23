@@ -8,7 +8,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  timeout: 120000,
+  timeout: 180000,
 });
 
 export async function POST(req: NextRequest) {
@@ -210,14 +210,14 @@ CRITICAL RULES:
 
     console.log('[API Analyze] Calling OpenAI with enhanced prompt…');
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-5.2',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
       ],
       response_format: { type: 'json_object' },
-      max_tokens: 6000,
-      temperature: 0.25,
+      max_completion_tokens: 8000,
+      temperature: 0.1,
     });
 
     const raw = (completion.choices[0]?.message?.content || '{}')
