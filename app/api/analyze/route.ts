@@ -8,7 +8,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
-  timeout: 55000,
+  timeout: 120000,
 });
 
 export async function POST(req: NextRequest) {
@@ -88,8 +88,8 @@ export async function POST(req: NextRequest) {
 
       if (isImage) {
         const processedImage = await sharp(buffer)
-          .resize({ width: 1400, fit: 'inside' })
-          .jpeg({ quality: 90 })
+          .resize({ width: 2500, fit: 'inside', withoutEnlargement: true })
+          .jpeg({ quality: 95 })
           .toBuffer();
         const base64 = processedImage.toString('base64');
         userContent.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64}` } });
@@ -117,7 +117,7 @@ Your task: produce a DEEPLY PERSONALISED, CLINICALLY RICH health analysis that g
 ANALYSIS REQUIREMENTS
 ═══════════════════════════════════════
 
-1. EXTRACT every test marker shown — exact values, units, and reference ranges.
+1. EXTRACT EVERY SINGLE TEST MARKER shown in the report. Do NOT skip any tests. Include both normal and abnormal results. If there are 30 tests on the page, you must output exactly 30 objects in the "tests" array.
 
 2. FOR EACH ABNORMAL MARKER, identify:
    - The 2-3 most likely ROOT CAUSES specific to this patient (e.g., lifestyle, diet, genetics, medication side effects, underlying conditions)
@@ -141,7 +141,7 @@ Return ONLY a single valid JSON object. No markdown, no code fences, no extra te
   "recommendation": "The single most impactful action — very specific (e.g., 'Your ferritin is 8 ng/mL — critically low. Start iron bisglycinate 25mg with Vitamin C 500mg at breakfast, away from coffee. Retest in 8 weeks. This alone may resolve your fatigue within 3-4 weeks.').",
   "overallScore": 7.2,
   "riskLevel": "low|moderate|high|critical",
-  "tests": [
+  "tests": [ // This array MUST contain an object for EVERY single test parameter found in the report. Normal or abnormal, do not skip any.
     {
       "test": "Full test name",
       "value": 5.4,
@@ -199,6 +199,7 @@ Return ONLY a single valid JSON object. No markdown, no code fences, no extra te
 }
 
 CRITICAL RULES:
+- YOU MUST EXTRACT EVERY SINGLE TEST ITEM. DO NOT SUMMARIZE OR SKIP ANY ROWS. ALL PARAMETERS SHOWN IN THE IMAGE MUST BE IN THE "tests" ARRAY.
 - value field must be a NUMBER (never a string)
 - futurePredictions: 2-4 items always
 - medicationAlerts: [] if no medications provided
@@ -214,6 +215,7 @@ CRITICAL RULES:
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
       ],
+      response_format: { type: 'json_object' },
       max_tokens: 6000,
       temperature: 0.25,
     });
@@ -249,8 +251,9 @@ CRITICAL RULES:
         nutrition: parsed.nutrition || { focus: '', breakfast: [], lunch: [], dinner: [], snacks: [], avoid: [] },
         lifestyle: parsed.lifestyle || { exercise: '', sleep: '', stress: '' },
       };
-    } catch {
-      console.error('[API Analyze] JSON parse error, using defaults');
+    } catch (parseError) {
+      console.error('[API Analyze] JSON parse error, using defaults:', parseError);
+      console.error('[API Analyze] Raw content that failed to parse:', raw);
     }
 
     await reportRef.update({

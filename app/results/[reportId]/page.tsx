@@ -454,16 +454,20 @@ export default function ResultsPage() {
                     <AlertTriangle className="w-4 h-4" /> {abnormalTests.length} Test{abnormalTests.length > 1 ? "s" : ""} Need Attention
                   </h3>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {abnormalTests.map((t, i) => (
-                      <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border ${FLAG_COLORS[t.flag].bg} ${FLAG_COLORS[t.flag].border}`}>
-                        {t.flag === "high" ? <TrendingUp className={`w-4 h-4 shrink-0 ${FLAG_COLORS[t.flag].text}`} />
-                          : <TrendingDown className={`w-4 h-4 shrink-0 ${FLAG_COLORS[t.flag].text}`} />}
-                        <div className="min-w-0">
-                          <p className="text-white text-sm font-semibold truncate">{t.test}</p>
-                          <p className={`text-xs ${FLAG_COLORS[t.flag].text}`}>{t.value} {t.unit} · {t.flag === "high" ? "High" : "Low"}</p>
+                    {abnormalTests.map((t, i) => {
+                      const flagKey = (t.flag === "high" || t.flag === "low") ? t.flag : "normal";
+                      const fc = FLAG_COLORS[flagKey];
+                      return (
+                        <div key={i} className={`flex items-center gap-3 p-3 rounded-xl border ${fc.bg} ${fc.border}`}>
+                          {t.flag === "high" ? <TrendingUp className={`w-4 h-4 shrink-0 ${fc.text}`} />
+                            : <TrendingDown className={`w-4 h-4 shrink-0 ${fc.text}`} />}
+                          <div className="min-w-0">
+                            <p className="text-white text-sm font-semibold truncate">{t.test}</p>
+                            <p className={`text-xs ${fc.text}`}>{t.value} {t.unit} · {t.flag === "high" ? "High" : "Low"}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -520,7 +524,8 @@ export default function ResultsPage() {
                   {tests.map((test, idx) => {
                     const parsed = parseRange(test.range);
                     const pct = parsed ? gaugePercent(test.value, parsed) : null;
-                    const fc = FLAG_COLORS[test.flag];
+                    const flagKey = (test.flag === "high" || test.flag === "low") ? test.flag : "normal";
+                    const fc = FLAG_COLORS[flagKey];
                     return (
                       <motion.div key={`${test.test}-${idx}`}
                         initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }}
@@ -816,7 +821,8 @@ export default function ResultsPage() {
                   <h3 className="text-base font-bold text-white mb-4">⚠ Tests Needing Attention</h3>
                   <div className="space-y-3">
                     {abnormalTests.map((t, i) => {
-                      const fc = FLAG_COLORS[t.flag];
+                      const flagKey = (t.flag === "high" || t.flag === "low") ? t.flag : "normal";
+                      const fc = FLAG_COLORS[flagKey];
                       return (
                         <div key={i} className={`flex items-center gap-4 p-3.5 rounded-xl border ${fc.bg} ${fc.border}`}>
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${fc.bg}`}>

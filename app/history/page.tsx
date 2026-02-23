@@ -7,14 +7,36 @@ import { db } from "@/lib/firebaseClient";
 import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  Loader2, FileText, Calendar, TrendingUp,
-  ChevronRight, Clock, ShieldCheck, Search,
-  Filter, Trash2, AlertCircle, Sparkles,
-  ArrowUpRight
+  Loader2, FileText, TrendingUp, ChevronRight,
+  Clock, ShieldCheck, Upload, AlertTriangle, CheckCircle2,
+  Activity, Brain, Sparkles, Shield, TrendingDown, BarChart3,
+  Search, Calendar, Trash2, ArrowUpRight
 } from "lucide-react";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 import toast from "react-hot-toast";
+
+const RISK_CONFIG: Record<string, { label: string; text: string; bg: string; border: string; dot: string }> = {
+  low: { label: "Low Risk", text: "text-green-400", bg: "bg-green-500/10", border: "border-green-500/20", dot: "bg-green-400" },
+  moderate: { label: "Moderate", text: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20", dot: "bg-amber-400" },
+  high: { label: "High Risk", text: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20", dot: "bg-red-400" },
+  critical: { label: "Critical", text: "text-red-500", bg: "bg-red-600/15", border: "border-red-600/30", dot: "bg-red-500" },
+};
+
+function scoreColor(s: number) {
+  if (s >= 8) return "text-green-400";
+  if (s >= 6) return "text-secondary-400";
+  if (s >= 4) return "text-amber-400";
+  return "text-red-400";
+}
+
+function scoreBg(s: number) {
+  if (s >= 8) return "bg-green-500/10 border-green-500/20";
+  if (s >= 6) return "bg-secondary-500/10 border-secondary-500/20";
+  if (s >= 4) return "bg-amber-500/10 border-amber-500/20";
+  return "bg-red-500/10 border-red-500/20";
+}
 
 export default function HistoryPage() {
   const { user, loading: authLoading } = useAuth();
@@ -33,10 +55,7 @@ export default function HistoryPage() {
     );
 
     const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
       setReports(data);
       setLoading(false);
     }, (err) => {
@@ -50,11 +69,10 @@ export default function HistoryPage() {
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
     if (!window.confirm("Are you sure you want to delete this report?")) return;
-
     try {
       await deleteDoc(doc(db, "reports", id));
       toast.success("Report deleted");
-    } catch (error) {
+    } catch {
       toast.error("Failed to delete report");
     }
   };
@@ -79,6 +97,14 @@ export default function HistoryPage() {
     return null;
   }
 
+  // ── Stats ──────────────────────────────────────────────────────────────────
+  const completed = reports.filter(r => r.status === "complete" && r.overallScore);
+  const scores = completed.map(r => r.overallScore as number);
+  const avgScore = scores.length ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10 : null;
+  const bestScore = scores.length ? Math.max(...scores) : null;
+  const latestScore = scores[0] ?? null;
+  const trend = scores.length >= 2 ? +(scores[0] - scores[1]).toFixed(1) : null;
+
   return (
     <div className="min-h-screen bg-[#0a0414] relative overflow-hidden">
       {/* Ambient Background */}
@@ -90,8 +116,8 @@ export default function HistoryPage() {
 
       <div className="relative z-10 max-w-7xl mx-auto pt-32 pb-20 px-4 sm:px-6 lg:px-8">
 
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+        {/* ── Header ── */}
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
           <div className="max-w-2xl">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -106,7 +132,10 @@ export default function HistoryPage() {
               transition={{ delay: 0.1 }}
               className="text-4xl sm:text-5xl font-black text-white mb-4"
             >
-              Your Health <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-secondary-400">Archive</span>
+              Your Health{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-secondary-400">
+                Archive
+              </span>
             </motion.h1>
             <motion.p
               initial={{ opacity: 0, y: 20 }}
@@ -118,6 +147,7 @@ export default function HistoryPage() {
             </motion.p>
           </div>
 
+          {/* Search */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -137,6 +167,70 @@ export default function HistoryPage() {
           </motion.div>
         </div>
 
+        {/* ── Stats Dashboard (only when there are completed reports) ── */}
+        {completed.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10"
+          >
+            {[
+              {
+                label: "Total Reports",
+                value: reports.length,
+                icon: FileText,
+                color: "text-primary-400",
+                bg: "bg-primary-500/10",
+                border: "border-primary-500/20",
+              },
+              {
+                label: "Latest Score",
+                value: latestScore ? `${latestScore}/10` : "—",
+                icon: Activity,
+                color: latestScore ? scoreColor(latestScore) : "text-gray-400",
+                bg: latestScore ? scoreBg(latestScore).split(" ")[0] : "bg-white/5",
+                border: latestScore ? scoreBg(latestScore).split(" ")[1] : "border-white/10",
+              },
+              {
+                label: "Average Score",
+                value: avgScore ? `${avgScore}/10` : "—",
+                icon: BarChart3,
+                color: avgScore ? scoreColor(avgScore) : "text-gray-400",
+                bg: avgScore ? scoreBg(avgScore).split(" ")[0] : "bg-white/5",
+                border: avgScore ? scoreBg(avgScore).split(" ")[1] : "border-white/10",
+              },
+              {
+                label: trend !== null
+                  ? (trend > 0 ? "Improving ↑" : trend < 0 ? "Declining ↓" : "Stable →")
+                  : "Best Score",
+                value: trend !== null
+                  ? (trend > 0 ? `+${trend}` : `${trend}`)
+                  : (bestScore ? `${bestScore}/10` : "—"),
+                icon: trend !== null ? (trend >= 0 ? TrendingUp : TrendingDown) : Sparkles,
+                color: trend !== null
+                  ? (trend > 0 ? "text-green-400" : trend < 0 ? "text-red-400" : "text-gray-400")
+                  : "text-amber-400",
+                bg: trend !== null
+                  ? (trend > 0 ? "bg-green-500/10" : trend < 0 ? "bg-red-500/10" : "bg-white/5")
+                  : "bg-amber-500/10",
+                border: trend !== null
+                  ? (trend > 0 ? "border-green-500/20" : trend < 0 ? "border-red-500/20" : "border-white/10")
+                  : "border-amber-500/20",
+              },
+            ].map(({ label, value, icon: Icon, color, bg, border }) => (
+              <div key={label} className={`glass-card border ${border} rounded-2xl p-5`}>
+                <div className={`w-8 h-8 rounded-xl ${bg} flex items-center justify-center mb-3`}>
+                  <Icon className={`w-4 h-4 ${color}`} />
+                </div>
+                <p className={`text-2xl font-black ${color}`}>{value}</p>
+                <p className="text-gray-500 text-xs mt-1">{label}</p>
+              </div>
+            ))}
+          </motion.div>
+        )}
+
+        {/* ── Empty State ── */}
         {filteredReports.length === 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -148,7 +242,9 @@ export default function HistoryPage() {
             </div>
             <h3 className="text-2xl font-bold text-white mb-3">No reports found</h3>
             <p className="text-gray-400 mb-10 max-w-sm mx-auto leading-relaxed">
-              {searchQuery ? "No reports match your search criteria. Try a different filename." : "You haven't uploaded any blood reports yet. Your health journey starts here."}
+              {searchQuery
+                ? "No reports match your search. Try a different filename."
+                : "You haven't uploaded any blood reports yet. Your health journey starts here."}
             </p>
             <button
               onClick={() => router.push("/upload")}
@@ -161,63 +257,128 @@ export default function HistoryPage() {
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence mode="popLayout">
-              {filteredReports.map((report, i) => (
-                <motion.div
-                  key={report.id}
-                  layout
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: i * 0.05 }}
-                  onClick={() => router.push(`/results/${report.id}`)}
-                  className="group relative glass-card p-6 cursor-pointer border border-white/10 hover:border-primary-500/30 shadow-sm hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-500 rounded-[2rem] flex flex-col justify-between overflow-hidden"
-                >
-                  {/* Decorative corner accent */}
-                  <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-bl-[4rem] group-hover:bg-primary-500/10 transition-colors" />
+              {filteredReports.map((report, i) => {
+                const risk = report.riskLevel ? RISK_CONFIG[report.riskLevel] : null;
+                const sc: number | undefined = report.overallScore;
+                const abnormal = Array.isArray(report.tests)
+                  ? report.tests.filter((t: any) => t.flag !== "normal").length
+                  : null;
+                const total = Array.isArray(report.tests) ? report.tests.length : null;
+                const hasPredictions = Array.isArray(report.futurePredictions) && report.futurePredictions.length > 0;
+                const hasMedAlerts = Array.isArray(report.medicationAlerts) && report.medicationAlerts.length > 0;
 
-                  <div className="relative">
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="w-12 h-12 rounded-2xl bg-primary-500/10 flex items-center justify-center text-primary-400 border border-primary-500/20 group-hover:scale-110 group-hover:bg-primary-500/20 transition-all duration-300">
-                        <FileText className="h-6 w-6" />
+                return (
+                  <motion.div
+                    key={report.id}
+                    layout
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: i * 0.05 }}
+                    onClick={() => router.push(`/results/${report.id}`)}
+                    className="group relative glass-card p-6 cursor-pointer border border-white/10 hover:border-primary-500/30 shadow-sm hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-500 rounded-[2rem] flex flex-col justify-between overflow-hidden"
+                  >
+                    {/* Decorative corner accent */}
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-bl-[4rem] group-hover:bg-primary-500/10 transition-colors" />
+
+                    <div className="relative">
+                      {/* File icon + delete */}
+                      <div className="flex items-center justify-between mb-5">
+                        <div className="w-12 h-12 rounded-2xl bg-primary-500/10 flex items-center justify-center text-primary-400 border border-primary-500/20 group-hover:scale-110 group-hover:bg-primary-500/20 transition-all duration-300">
+                          <FileText className="h-6 w-6" />
+                        </div>
+                        <button
+                          onClick={(e) => handleDelete(e, report.id)}
+                          className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-all"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
-                      <button
-                        onClick={(e) => handleDelete(e, report.id)}
-                        className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-all"
+
+                      {/* File name */}
+                      <h3
+                        className="text-lg font-bold text-white mb-2 truncate group-hover:text-primary-300 transition-colors"
+                        title={report.fileName}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
+                        {report.fileName}
+                      </h3>
 
-                    <h3 className="text-xl font-bold text-white mb-2 truncate group-hover:text-primary-300 transition-colors" title={report.fileName}>
-                      {report.fileName}
-                    </h3>
-
-                    <div className="flex items-center gap-3 text-sm text-gray-500 mb-6">
-                      <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {report.createdAt?.toDate?.() ? format(new Date(report.createdAt.toDate()), "MMM dd, yyyy") : "Unknown date"}
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Clock className="h-3.5 w-3.5" />
-                        {report.createdAt?.toDate?.() ? format(new Date(report.createdAt.toDate()), "h:mm a") : ""}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    {report.overallScore && (
-                      <div className="flex items-center justify-between p-4 bg-white/5 border border-white/10 rounded-2xl group-hover:bg-primary-500/5 group-hover:border-primary-500/20 transition-all">
-                        <div className="flex items-center gap-2">
-                          <TrendingUp className="h-4 w-4 text-accent-400" />
-                          <span className="text-sm font-medium text-gray-400">Health Score</span>
+                      {/* Date + time */}
+                      <div className="flex items-center gap-3 text-sm text-gray-500 mb-5">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10">
+                          <Calendar className="h-3.5 w-3.5" />
+                          {report.createdAt?.toDate?.()
+                            ? format(new Date(report.createdAt.toDate()), "MMM dd, yyyy")
+                            : "Unknown date"}
                         </div>
-                        <div className="text-xl font-black text-white">
-                          {report.overallScore}<span className="text-gray-600 text-sm font-bold">/10</span>
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5" />
+                          {report.createdAt?.toDate?.()
+                            ? format(new Date(report.createdAt.toDate()), "h:mm a")
+                            : ""}
                         </div>
                       </div>
-                    )}
 
-                    <div className="flex items-center justify-between px-1">
+                      {/* Score + Risk row */}
+                      {(sc != null || risk) && (
+                        <div className="flex items-center gap-2 mb-4">
+                          {sc != null && (
+                            <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${scoreBg(sc)} flex-1`}>
+                              <TrendingUp className={`h-3.5 w-3.5 ${scoreColor(sc)}`} />
+                              <span className="text-xs text-gray-400">Score</span>
+                              <span className={`text-sm font-black ml-auto ${scoreColor(sc)}`}>{sc}/10</span>
+                            </div>
+                          )}
+                          {risk && (
+                            <div className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border ${risk.bg} ${risk.border}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${risk.dot}`} />
+                              <span className={`text-xs font-semibold ${risk.text}`}>{risk.label}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Test breakdown */}
+                      {total != null && (
+                        <div className="flex items-center gap-4 mb-4 text-xs text-gray-500">
+                          <div className="flex items-center gap-1.5">
+                            <Activity className="h-3 w-3 text-gray-600" />
+                            <span>{total} tests</span>
+                          </div>
+                          {abnormal != null && abnormal > 0 && (
+                            <div className="flex items-center gap-1.5 text-amber-400">
+                              <AlertTriangle className="h-3 w-3" />
+                              <span>{abnormal} abnormal</span>
+                            </div>
+                          )}
+                          {abnormal === 0 && (
+                            <div className="flex items-center gap-1.5 text-green-400">
+                              <CheckCircle2 className="h-3 w-3" />
+                              <span>All normal</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Feature badges */}
+                      {(hasPredictions || hasMedAlerts) && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {hasPredictions && (
+                            <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400">
+                              <Brain className="w-3 h-3" /> Predictions
+                            </span>
+                          )}
+                          {hasMedAlerts && (
+                            <span className="flex items-center gap-1 text-xs px-2 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400">
+                              <AlertTriangle className="w-3 h-3" /> Med Alerts
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="flex items-center justify-between pt-4 border-t border-white/6">
                       <div className="flex items-center gap-2 text-[10px] sm:text-xs text-gray-600 font-bold uppercase tracking-wider">
                         <ShieldCheck className="h-3.5 w-3.5 text-accent-500/60" />
                         <span>Private & Secured</span>
@@ -226,11 +387,24 @@ export default function HistoryPage() {
                         View Details <ArrowUpRight className="h-3.5 w-3.5" />
                       </div>
                     </div>
-                  </div>
-                </motion.div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </AnimatePresence>
           </div>
+        )}
+
+        {/* Bottom disclaimer */}
+        {reports.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            className="flex items-center gap-2 justify-center mt-10 text-gray-600 text-xs"
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>All reports are encrypted and visible only to you</span>
+          </motion.div>
         )}
       </div>
     </div>
