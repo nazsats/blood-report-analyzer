@@ -302,10 +302,7 @@ CRITICAL RULES:
       });
     }
 
-    return NextResponse.json(
-      { success: true, reportId, shareUrl: `https://your-app.com/share/${shareId}` },
-      { headers: { 'Access-Control-Allow-Origin': '*' } }
-    );
+    return NextResponse.json({ success: true, reportId, shareUrl: `https://your-app.com/share/${shareId}` });
 
   } catch (err: any) {
     console.error('[API Analyze] FATAL ERROR:', err);
@@ -317,9 +314,6 @@ CRITICAL RULES:
     } catch (dbErr: any) {
       console.error('[API Analyze] Failed to log error to DB:', dbErr.message);
     }
-    return NextResponse.json(
-      { error: `Server error: ${err.message}` },
-      { status: 500, headers: { 'Access-Control-Allow-Origin': '*' } }
-    );
+    return NextResponse.json({ error: `Server error: ${err.message}` }, { status: 500 });
   }
 }

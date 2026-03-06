@@ -107,7 +107,7 @@ export default function UploadScreen() {
                     selectedFile.uri,
                     {
                         httpMethod: 'POST',
-                        uploadType: 2 as any, // FileSystemUploadType.MULTIPART = 2
+                        uploadType: 1 as any, // FileSystemUploadType.MULTIPART = 1
                         fieldName: 'file',
                         mimeType: selectedFile.type,
                         headers: {
