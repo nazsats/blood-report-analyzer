@@ -1,9 +1,7 @@
 // lib/firebaseClient.ts
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { initializeAuth, getAuth, Auth } from 'firebase/auth';
-// @ts-expect-error Typescript might not see getReactNativePersistence in this specific version's types
-import { getReactNativePersistence } from 'firebase/auth';
-import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getStorage, FirebaseStorage } from 'firebase/storage';
 
@@ -21,9 +19,19 @@ let auth: Auth;
 
 if (!getApps().length) {
     app = initializeApp(firebaseConfig);
-    auth = initializeAuth(app, {
-        persistence: getReactNativePersistence(ReactNativeAsyncStorage)
-    });
+
+    if (Platform.OS !== 'web') {
+        // Native only: persist auth with AsyncStorage
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const { getReactNativePersistence } = require('firebase/auth');
+        const ReactNativeAsyncStorage = require('@react-native-async-storage/async-storage').default;
+        auth = initializeAuth(app, {
+            persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+        });
+    } else {
+        // Web: use default browser persistence
+        auth = getAuth(app);
+    }
 } else {
     app = getApps()[0];
     auth = getAuth(app);
