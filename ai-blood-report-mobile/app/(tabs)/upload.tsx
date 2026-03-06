@@ -108,8 +108,8 @@ export default function UploadScreen() {
 
                     if (Platform.OS === 'web') {
                         // @ts-ignore
-                        const pdfjsLib = await import("pdfjs-dist/build/pdf.mjs");
-                        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+                        const pdfjsLib = await import("pdfjs-dist/build/pdf.js");
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
                         const arrayBuffer = await blob.arrayBuffer();
                         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
                         const pdf = await loadingTask.promise;

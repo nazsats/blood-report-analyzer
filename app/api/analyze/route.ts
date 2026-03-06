@@ -5,6 +5,8 @@ import OpenAI from 'openai';
 import { adminDb, getAdminApp } from '@/lib/firebaseAdmin';
 import sharp from 'sharp';
 import { FieldValue } from 'firebase-admin/firestore';
+// @ts-expect-error pdf-parse has no default export in types
+import pdfParse from 'pdf-parse';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -16,9 +18,9 @@ export async function POST(req: NextRequest) {
   console.log(`[API Analyze] Starting request ${reportId}`);
 
   try {
-    const form = await req.formData();
+    const form = await req.formData() as any;
     const files = form.getAll('file') as File[];
-    const extractedText = form.get('extractedText') as string;
+    let extractedText = form.get('extractedText') as string;
     const userAge = form.get('userAge') as string | null;
     const userGender = form.get('userGender') as string | null;
     const medications = form.get('medications') as string | null;
@@ -85,6 +87,7 @@ export async function POST(req: NextRequest) {
     for (const file of files) {
       const buffer = Buffer.from(await file.arrayBuffer());
       const isImage = file.type.startsWith('image/');
+      const isPDF = file.type === 'application/pdf';
 
       if (isImage) {
         const processedImage = await sharp(buffer)
@@ -93,6 +96,11 @@ export async function POST(req: NextRequest) {
           .toBuffer();
         const base64 = processedImage.toString('base64');
         userContent.push({ type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64}` } });
+      } else if (isPDF && !extractedText) {
+        // Fallback: If client didn't extract text, do it on the server
+        console.log('[API Analyze] Extracting text from PDF on server...');
+        const pdfData = await pdfParse(buffer);
+        extractedText = pdfData.text;
       }
     }
 
