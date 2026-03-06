@@ -4,7 +4,7 @@ import {
     View, Text, FlatList, TouchableOpacity, StyleSheet,
     TextInput, ActivityIndicator, Alert, RefreshControl,
 } from 'react-native';
-import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc, QueryConstraint } from 'firebase/firestore';
 import { db } from '../../lib/firebaseClient';
 import { useAuth } from '../../hooks/useAuth';
 import { useRouter } from 'expo-router';
@@ -21,19 +21,41 @@ export default function HistoryScreen() {
 
     useEffect(() => {
         if (!user) return;
-        const q = query(
-            collection(db, 'reports'),
-            where('userId', '==', user.uid),
-            orderBy('createdAt', 'desc'),
-        );
-        const unsub = onSnapshot(q, snapshot => {
-            setReports(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
-            setLoading(false);
-        }, err => {
-            console.error('Firestore error:', err);
-            setLoading(false);
-        });
-        return () => unsub();
+        let unsub: (() => void) | undefined;
+
+        // Try with orderBy first; if the composite index isn't ready, fall back
+        const startQuery = (withOrder: boolean) => {
+            const constraints: QueryConstraint[] = [
+                where('userId', '==', user.uid),
+            ];
+            if (withOrder) constraints.push(orderBy('createdAt', 'desc'));
+            const q = query(collection(db, 'reports'), ...constraints);
+
+            unsub = onSnapshot(q, snapshot => {
+                let docs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                // If we skipped orderBy, sort client-side
+                if (!withOrder) {
+                    docs.sort((a: any, b: any) => {
+                        const ta = a.createdAt?.toMillis?.() ?? 0;
+                        const tb = b.createdAt?.toMillis?.() ?? 0;
+                        return tb - ta;
+                    });
+                }
+                setReports(docs);
+                setLoading(false);
+            }, err => {
+                if (withOrder && err?.message?.includes('index')) {
+                    console.warn('Composite index not ready, falling back to client-side sort');
+                    startQuery(false);
+                } else {
+                    console.error('Firestore error:', err);
+                    setLoading(false);
+                }
+            });
+        };
+
+        startQuery(true);
+        return () => unsub?.();
     }, [user]);
 
     const handleDelete = (id: string) => {
