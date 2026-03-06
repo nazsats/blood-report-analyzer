@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebaseClient";
-import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
+import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc, QueryConstraint } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Loader2, FileText, TrendingUp, ChevronRight,
@@ -47,23 +47,39 @@ export default function HistoryPage() {
 
   useEffect(() => {
     if (!user) return;
+    let unsub: (() => void) | undefined;
 
-    const q = query(
-      collection(db, "reports"),
-      where("userId", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
+    const startQuery = (withOrder: boolean) => {
+      const constraints: QueryConstraint[] = [
+        where("userId", "==", user.uid),
+      ];
+      if (withOrder) constraints.push(orderBy("createdAt", "desc"));
+      const q = query(collection(db, "reports"), ...constraints);
 
-    const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      setReports(data);
-      setLoading(false);
-    }, (err) => {
-      console.error("Firestore error:", err);
-      setLoading(false);
-    });
+      unsub = onSnapshot(q, (snapshot) => {
+        let data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        if (!withOrder) {
+          data.sort((a: any, b: any) => {
+            const ta = a.createdAt?.toMillis?.() ?? 0;
+            const tb = b.createdAt?.toMillis?.() ?? 0;
+            return tb - ta;
+          });
+        }
+        setReports(data);
+        setLoading(false);
+      }, (err) => {
+        if (withOrder && err?.message?.includes("index")) {
+          console.warn("Composite index not ready, falling back to client-side sort");
+          startQuery(false);
+        } else {
+          console.error("Firestore error:", err);
+          setLoading(false);
+        }
+      });
+    };
 
-    return () => unsub();
+    startQuery(true);
+    return () => unsub?.();
   }, [user]);
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {

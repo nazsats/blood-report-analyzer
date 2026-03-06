@@ -3,7 +3,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
-import { doc, getDoc, setDoc, collection, query, where, orderBy, getDocs } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, orderBy, getDocs, QueryConstraint } from "firebase/firestore";
 import { db, storage } from "@/lib/firebaseClient";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { motion, AnimatePresence } from "framer-motion";
@@ -90,14 +90,34 @@ export default function ProfilePage() {
           setIsEditing(true);
         }
 
-        // Fetch reports for stats
-        const q = query(
-          collection(db, "reports"),
-          where("userId", "==", user.uid),
-          orderBy("createdAt", "desc")
-        );
-        const snap = await getDocs(q);
-        const reports = snap.docs.map(d => ({ id: d.id, ...d.data() })) as any[];
+        // Fetch reports for stats — with fallback for missing composite index
+        let reports: any[] = [];
+        try {
+          const q = query(
+            collection(db, "reports"),
+            where("userId", "==", user.uid),
+            orderBy("createdAt", "desc")
+          );
+          const snap = await getDocs(q);
+          reports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch (indexErr: any) {
+          if (indexErr?.message?.includes("index")) {
+            console.warn("Composite index not ready, falling back to client-side sort");
+            const fallbackQ = query(
+              collection(db, "reports"),
+              where("userId", "==", user.uid)
+            );
+            const snap = await getDocs(fallbackQ);
+            reports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            reports.sort((a: any, b: any) => {
+              const ta = a.createdAt?.toMillis?.() ?? 0;
+              const tb = b.createdAt?.toMillis?.() ?? 0;
+              return tb - ta;
+            });
+          } else {
+            throw indexErr;
+          }
+        }
         setRecentReports(reports.slice(0, 3));
 
         if (reports.length > 0) {
