@@ -98,42 +98,11 @@ export default function UploadScreen() {
             const idToken = await user.getIdToken();
             const formData = new FormData();
 
-            // If it's a PDF, try to extract text first
-            let extractedText = "";
-            if (!selectedFile.isImage) {
-                try {
-                    // Mobile-compatible way to get file text buffer in React Native
-                    const response = await fetch(selectedFile.uri);
-                    const blob = await response.blob();
-
-                    if (Platform.OS === 'web') {
-                        // @ts-ignore
-                        const pdfjsLib = await import("pdfjs-dist/build/pdf.js");
-                        pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.js`;
-                        const arrayBuffer = await blob.arrayBuffer();
-                        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-                        const pdf = await loadingTask.promise;
-                        for (let i = 1; i <= pdf.numPages; i++) {
-                            const page = await pdf.getPage(i);
-                            const textContent = await page.getTextContent();
-                            const pageText = textContent.items.map((item: any) => item.str).join(" ");
-                            extractedText += `--- Page ${i} ---\n${pageText}\n\n`;
-                        }
-                    }
-                } catch (e) {
-                    console.log("PDF text extraction failed or not supported natively:", e);
-                }
-            }
-
             formData.append('file', {
                 uri: Platform.OS === 'ios' ? selectedFile.uri.replace('file://', '') : selectedFile.uri,
                 name: selectedFile.name,
                 type: selectedFile.type,
             } as any);
-
-            if (extractedText) {
-                formData.append('extractedText', extractedText);
-            }
 
             const res = await fetch(`${API_BASE_URL}/api/analyze`, {
                 method: 'POST',
