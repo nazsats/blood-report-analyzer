@@ -13,6 +13,17 @@ const openai = new OpenAI({
   timeout: 180000,
 });
 
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  });
+}
+
 export async function POST(req: NextRequest) {
   const reportId = uuidv4();
   console.log(`[API Analyze] Starting request ${reportId}`);
@@ -291,7 +302,10 @@ CRITICAL RULES:
       });
     }
 
-    return NextResponse.json({ success: true, reportId, shareUrl: `https://your-app.com/share/${shareId}` });
+    return NextResponse.json(
+      { success: true, reportId, shareUrl: `https://your-app.com/share/${shareId}` },
+      { headers: { 'Access-Control-Allow-Origin': '*' } }
+    );
 
   } catch (err: any) {
     console.error('[API Analyze] FATAL ERROR:', err);
@@ -303,6 +317,9 @@ CRITICAL RULES:
     } catch (dbErr: any) {
       console.error('[API Analyze] Failed to log error to DB:', dbErr.message);
     }
-    return NextResponse.json({ error: `Server error: ${err.message}` }, { status: 500 });
+    return NextResponse.json(
+      { error: `Server error: ${err.message}` },
+      { status: 500, headers: { 'Access-Control-Allow-Origin': '*' } }
+    );
   }
 }
