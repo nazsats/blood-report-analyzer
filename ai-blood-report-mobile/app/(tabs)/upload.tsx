@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as DocumentPicker from 'expo-document-picker';
+import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
 import { auth, API_BASE_URL } from '../../lib/firebaseClient';
 import { Colors } from '../../constants/colors';
@@ -96,22 +97,52 @@ export default function UploadScreen() {
 
         try {
             const idToken = await user.getIdToken();
-            const formData = new FormData();
+            let data: any;
 
-            formData.append('file', {
-                uri: Platform.OS === 'ios' ? selectedFile.uri.replace('file://', '') : selectedFile.uri,
-                name: selectedFile.name,
-                type: selectedFile.type,
-            } as any);
+            if (Platform.OS !== 'web') {
+                // Mobile Native Exception: fetch() with multipart FormData is notoriously 
+                // buggy on Android/iOS React Native. Use Expo's FileSystem for reliable background uploads.
+                const uploadResult = await FileSystem.uploadAsync(
+                    `${API_BASE_URL}/api/analyze`,
+                    selectedFile.uri,
+                    {
+                        httpMethod: 'POST',
+                        uploadType: 2 as any, // FileSystemUploadType.MULTIPART = 2
+                        fieldName: 'file',
+                        mimeType: selectedFile.type,
+                        headers: {
+                            Authorization: `Bearer ${idToken}`,
+                        },
+                    }
+                );
 
-            const res = await fetch(`${API_BASE_URL}/api/analyze`, {
-                method: 'POST',
-                body: formData,
-                headers: { Authorization: `Bearer ${idToken}` },
-            });
+                try {
+                    data = JSON.parse(uploadResult.body);
+                } catch (e) {
+                    throw new Error(uploadResult.body || "Invalid server response");
+                }
 
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Analysis failed');
+                if (uploadResult.status < 200 || uploadResult.status >= 300) {
+                    throw new Error(data.error || 'Analysis failed on server');
+                }
+            } else {
+                // Web safe path
+                const formData = new FormData();
+                formData.append('file', {
+                    uri: selectedFile.uri,
+                    name: selectedFile.name,
+                    type: selectedFile.type,
+                } as any);
+
+                const res = await fetch(`${API_BASE_URL}/api/analyze`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: { Authorization: `Bearer ${idToken}` },
+                });
+
+                data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Analysis failed');
+            }
 
             clearInterval(stepInterval);
             setUploading(false);
