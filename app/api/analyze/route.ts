@@ -5,8 +5,8 @@ import OpenAI from 'openai';
 import { adminDb, getAdminApp } from '@/lib/firebaseAdmin';
 import sharp from 'sharp';
 import { FieldValue } from 'firebase-admin/firestore';
-// @ts-expect-error pdf-parse has no default export in types
-import pdfParse from 'pdf-parse';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const pdfParse = require('pdf-parse') as (buffer: Buffer) => Promise<{ text: string }>;
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -229,13 +229,13 @@ CRITICAL RULES:
 
     console.log('[API Analyze] Calling OpenAI with enhanced prompt…');
     const completion = await openai.chat.completions.create({
-      model: 'gpt-5.2',
+      model: 'gpt-4o',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userContent },
       ],
       response_format: { type: 'json_object' },
-      max_completion_tokens: 8000,
+      max_tokens: 8000,
       temperature: 0.1,
     });
 
