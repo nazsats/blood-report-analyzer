@@ -76,9 +76,7 @@ export async function POST(req: NextRequest) {
     }
     const userData = userDoc.data() || { freeUploadsUsed: 0, pro: false };
 
-    if (!userData.pro && userData.freeUploadsUsed >= 1) {
-      return NextResponse.json({ error: 'Upgrade to Pro for more uploads' }, { status: 403 });
-    }
+    // Pro restriction removed — all users have unlimited access
 
     // Merge medications from form AND profile for completeness
     const profileMeds = userData.currentMedications || '';
@@ -293,14 +291,6 @@ CRITICAL RULES:
 
     const shareId = uuidv4();
     await reportRef.update({ shareId });
-
-    if (!userData.pro) {
-      await adminDb.runTransaction(async (transaction) => {
-        const freshUserDoc = await transaction.get(userRef);
-        const freshData = freshUserDoc.data() || { freeUploadsUsed: 0 };
-        transaction.update(userRef, { freeUploadsUsed: freshData.freeUploadsUsed + 1 });
-      });
-    }
 
     return NextResponse.json({ success: true, reportId, shareUrl: `https://your-app.com/share/${shareId}` });
 
