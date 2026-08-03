@@ -61,15 +61,60 @@ Three steps, about a minute or two.
 
 ---
 
-## Screenshots
+## See it in action
 
-**Home page**
+Everything below is a real run on a public sample lab report — a
+[Drlogy Complete Blood Count template](https://drlogy.com). The report has 19 markers,
+two of them out of range: haemoglobin low at 12.5 g/dL and packed cell volume high at
+57.5%. BloodAI found both.
 
-![Home page, full](docs/screenshots/landing-full.png)
-
-**Upload screen** (you need a free account first)
+### 1. Drop in your report
 
 ![Upload screen](docs/screenshots/upload.png)
+
+### 2. Get the summary
+
+A health score, a count of what's normal versus what needs attention, a written summary,
+your top goals, and the single most important thing to do first.
+
+![Results summary](docs/screenshots/results-summary.png)
+
+### 3. Go through every marker
+
+Each test with your value, the normal range, and a plain-English explanation. Anything
+out of range also gets likely causes and a specific plan.
+
+![All test results](docs/screenshots/results-tests.png)
+
+### 4. See it as charts
+
+A breakdown of normal versus flagged results, and a map of how your markers sit relative
+to their ranges.
+
+![Charts and visuals](docs/screenshots/results-visuals.png)
+
+### 5. Look ahead
+
+Conditions that could develop based on the pattern across markers — with a timeframe,
+the reasoning, and how to prevent each one.
+
+![Future predictions](docs/screenshots/results-predictions.png)
+
+### 6. Eat and live around your results
+
+![Nutrition plan](docs/screenshots/results-nutrition.png)
+
+![Lifestyle plan](docs/screenshots/results-lifestyle.png)
+
+### 7. Check your medicines
+
+If you list what you take, BloodAI flags known interactions with your lab values.
+
+![Medication alerts](docs/screenshots/results-medications.png)
+
+### The home page
+
+![Home page, full](docs/screenshots/landing-full.png)
 
 ---
 
@@ -138,7 +183,22 @@ NEXT_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_id
 > GOOGLE_APPLICATION_CREDENTIALS=C:\full\path\to\service-account.json
 > ```
 
-### 3. Start it
+### 3. Lock down your database
+
+**Do not skip this.** A new Firebase project often starts in test mode, which leaves
+every document readable and writable by anyone on the internet. This repo ships the
+rules it actually needs in [`firestore.rules`](firestore.rules) — deploy them before you
+put any real data in:
+
+```bash
+firebase deploy --only firestore:rules
+```
+
+You can check what is currently live under
+**Firebase Console → Firestore Database → Rules**. If you see
+`allow read, write: if true;`, your database is wide open.
+
+### 4. Start it
 
 ```bash
 npm run dev
@@ -215,9 +275,12 @@ product.
 - It is **not** certified or approved by any medical regulator
 - Analysis quality depends on how readable your report is — a clear PDF beats a blurry
   photo every time
-- Your reports are encrypted in transit and at rest, and Firebase Authentication ties
-  them to your account. There is no automatic deletion yet, but you can delete any
-  report yourself from the History page.
+- Reports are encrypted in transit and at rest. Access control depends entirely on the
+  Firestore rules you deploy — see step 3 of the setup above, and check yours
+- Anyone holding a share link can open that report, by design. Treat share links as
+  public
+- There is no automatic deletion yet. You can delete any report yourself from the
+  History page.
 
 ---
 

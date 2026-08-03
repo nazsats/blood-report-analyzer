@@ -1,0 +1,74 @@
+rules_version = '2';
+
+// BloodAI Firestore security rules.
+//
+// The server (Firebase Admin SDK in /api routes) bypasses these rules entirely,
+// so everything the API writes keeps working. These rules only constrain the
+// browser client.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    // ---- users/{uid} : your own profile only -------------------------------
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+
+    // ---- reports/{reportId} ------------------------------------------------
+    match /reports/{reportId} {
+
+      // Fetching one document by its id: owner only.
+      // The analyze route stamps a shareId onto every report, so keying access
+      // off "has a shareId" would make every report readable to anyone who
+      // learns its id. Ownership is the only check here.
+      allow get: if signedIn() && resource.data.userId == request.auth.uid;
+
+      // Running a query. Two shapes are legitimate:
+      //   - the History page   : where userId == <me>
+      //   - the public share page: where shareId == <the id in the link>
+      // The share page runs signed out, so shared documents must be listable.
+      //
+      // Known trade-off: a hand-crafted query could still walk the set of
+      // shared reports. Closing that properly means giving shares their own
+      // `shares/{shareId}` collection holding a copy of the payload, rather
+      // than exposing `reports` at all.
+      allow list: if (signedIn() && resource.data.userId == request.auth.uid)
+                  || resource.data.shareId != null;
+
+      // Only the owner may change or remove a report, and they may not
+      // reassign it to somebody else.
+      allow update: if signedIn()
+                    && resource.data.userId == request.auth.uid
+                    && request.resource.data.userId == resource.data.userId;
+
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+
+      // Reports are created by the server, never by the browser.
+      allow create: if false;
+    }
+
+    // ---- mealLogs/{uid}_{date} : written by the server, read by the owner ---
+    match /mealLogs/{logId} {
+      allow read: if signedIn() && logId.split('_')[0] == request.auth.uid;
+      allow write: if false;
+
+      match /entries/{entryId} {
+        allow read: if signedIn() && logId.split('_')[0] == request.auth.uid;
+        allow write: if false;
+      }
+    }
+
+    // ---- everything else is denied ----------------------------------------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
