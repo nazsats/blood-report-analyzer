@@ -6,7 +6,17 @@ import { adminDb, getAdminApp } from '@/lib/firebaseAdmin';
 import sharp from 'sharp';
 import { FieldValue } from 'firebase-admin/firestore';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
-const pdfParse = require('pdf-parse') as (buffer: Buffer) => Promise<{ text: string }>;
+const { PDFParse } = require('pdf-parse') as typeof import('pdf-parse');
+
+async function extractPdfText(buffer: Buffer): Promise<string> {
+  const parser = new PDFParse({ data: buffer });
+  try {
+    const result = await parser.getText();
+    return result.text;
+  } finally {
+    await parser.destroy();
+  }
+}
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -108,8 +118,7 @@ export async function POST(req: NextRequest) {
       } else if (isPDF && !extractedText) {
         // Fallback: If client didn't extract text, do it on the server
         console.log('[API Analyze] Extracting text from PDF on server...');
-        const pdfData = await pdfParse(buffer);
-        extractedText = pdfData.text;
+        extractedText = await extractPdfText(buffer);
       }
     }
 
