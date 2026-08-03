@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { motion } from "framer-motion";
 import {
   ArrowRight, ShieldCheck, Activity, Zap, Heart, Brain, TrendingUp,
-  Star, ChevronRight, Lock, FileText, Users, Award, Sparkles
+  ChevronRight, Lock, FileText, Users, Award, Sparkles
 } from "lucide-react";
 import { useState } from "react";
 import Pricing from "@/components/Pricing";
@@ -43,8 +43,8 @@ export default function Home() {
   const features = [
     {
       icon: Zap,
-      title: "30-Second Analysis",
-      desc: "Upload your report and get comprehensive AI-powered insights in under 30 seconds.",
+      title: "Analysis in Minutes",
+      desc: "Upload your report and get comprehensive AI-powered insights in a couple of minutes.",
       color: "from-yellow-500/20 to-orange-500/20",
       iconColor: "text-yellow-400",
       border: "hover:border-yellow-500/30",
@@ -83,8 +83,8 @@ export default function Home() {
     },
     {
       icon: ShieldCheck,
-      title: "Bank-Grade Privacy",
-      desc: "End-to-end encrypted, HIPAA-compliant. Your health data is always yours alone.",
+      title: "Private by Default",
+      desc: "Encrypted in transit and at rest. Your reports are tied to your account and visible only to you.",
       color: "from-emerald-500/20 to-accent-500/20",
       iconColor: "text-emerald-400",
       border: "hover:border-emerald-500/30",
@@ -95,12 +95,6 @@ export default function Home() {
     { num: "01", title: "Upload Your Report", desc: "Drag and drop your PDF or image blood report. We support all standard lab formats.", icon: FileText },
     { num: "02", title: "AI Analyzes Instantly", desc: "Our GPT-4 powered engine reads every marker, flags abnormal values, and cross-references medical databases.", icon: Brain },
     { num: "03", title: "Get Your Health Plan", desc: "Receive a personalized wellness protocol with diet, exercise, and supplement recommendations.", icon: Sparkles },
-  ];
-
-  const testimonials = [
-    { name: "Sarah K.", role: "Marathon Runner", text: "Finally understand my ferritin and B12 levels! The diet recommendations were spot on.", rating: 5 },
-    { name: "Dr. Raj M.", role: "Physician", text: "I recommend this to patients. The explanations are medically accurate and easy to understand.", rating: 5 },
-    { name: "Emily T.", role: "Health Enthusiast", text: "Saved me hundreds in consultation fees. The AI caught something my doctor rushed past!", rating: 5 },
   ];
 
   return (
@@ -121,7 +115,7 @@ export default function Home() {
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm font-medium mb-8"
         >
           <Zap className="w-3.5 h-3.5 fill-current text-primary-400" />
-          Powered by GPT-4 Vision — 30 second analysis
+          Powered by GPT-4o Vision
         </motion.div>
 
         <motion.h1 {...fadeUp} {...stagger(1)}
@@ -180,10 +174,10 @@ export default function Home() {
           className="flex flex-wrap justify-center gap-6 mt-16 text-sm text-gray-500"
         >
           {[
-            { icon: Users, text: "10,000+ reports analyzed" },
-            { icon: ShieldCheck, text: "HIPAA compliant & encrypted" },
-            { icon: Award, text: "99.2% accuracy on standard markers" },
-            { icon: Zap, text: "Results in under 30 seconds" },
+            { icon: Users, text: "Free to try, no card required" },
+            { icon: ShieldCheck, text: "Encrypted in transit & at rest" },
+            { icon: Award, text: "Reads reports from any lab" },
+            { icon: Zap, text: "Powered by GPT-4o Vision" },
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-2">
               <item.icon className="w-4 h-4 text-primary-400" />
@@ -357,46 +351,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── TESTIMONIALS ─────────────────────────────────────── */}
-      <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 py-24">
-        <div className="text-center mb-16">
-          <motion.h2
-            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="text-4xl sm:text-5xl font-black tracking-tight"
-          >
-            <span className="gradient-text">Loved by health seekers</span>
-          </motion.h2>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {testimonials.map((t, i) => (
-            <motion.div
-              key={t.name}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="p-6 rounded-2xl glass-card border border-white/8 hover:border-primary-500/25 transition-all duration-300"
-            >
-              <div className="flex gap-1 mb-4">
-                {[...Array(t.rating)].map((_, j) => (
-                  <Star key={j} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                ))}
-              </div>
-              <p className="text-gray-300 leading-relaxed mb-6 text-sm">"{t.text}"</p>
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-secondary-500 flex items-center justify-center text-white font-bold text-sm">
-                  {t.name[0]}
-                </div>
-                <div>
-                  <div className="text-white font-semibold text-sm">{t.name}</div>
-                  <div className="text-gray-500 text-xs">{t.role}</div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
       {/* ── PRICING ──────────────────────────────────────────── */}
       <section className="relative z-10">
         <Pricing />
@@ -420,7 +374,7 @@ export default function Home() {
               Your health data, decoded.
             </h2>
             <p className="text-primary-200 text-lg mb-10 max-w-xl mx-auto">
-              Join 10,000+ people who understand their blood work and take control of their health.
+              Understand your blood work and take control of your health.
             </p>
             <motion.button
               whileHover={{ scale: 1.04, y: -2 }}

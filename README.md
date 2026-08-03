@@ -1,146 +1,242 @@
-# 🩸 BloodAI — Decode Your Blood Report with AI
+# 🩸 BloodAI — Understand Your Blood Test
 
-**BloodAI** is a premium, AI-powered health intelligence platform that transforms complex blood test reports into clear, actionable health insights. Using GPT-4o Vision, it analyzes your lab results in seconds and provides a personalized wellness protocol — now with an integrated **AI Meal Analyzer** to track your daily nutrition.
+**Your lab gives you numbers. BloodAI tells you what they mean.**
 
----
+Upload a photo or PDF of your blood test, and get a plain-English explanation of every
+result, what might be causing anything unusual, and what you can actually do about it.
 
-## ✨ Features
-
-### 🔬 1. Instant AI Blood Report Analysis
-Our GPT-4o Vision-powered engine processes your PDF or image-based blood reports in under 30 seconds. It automatically identifies biomarkers, extracts numerical values, and flags any results falling outside standard clinical ranges.
-
-### 💬 2. Plain English Explanations
-BloodAI translates complex markers (like *Ferritin*, *HbA1c*, or *LDL*) into friendly, human-readable language. You'll understand not just *what* your levels are, but *why* they matter.
-
-### 🥗 3. Personalized Wellness & Diet Protocols
-Based on your unique blood chemistry, the AI generates a comprehensive health plan:
-- **Meal Plans**: Specific breakfast, lunch, and dinner suggestions to improve flagged markers.
-- **Supplement Stacks**: Targeted recommendations (e.g., Vitamin D3+K2) with dosage guidelines.
-- **Lifestyle Tips**: Daily habits (morning sunlight, specific sleep windows) to optimize your health score.
-
-### 📸 4. AI Meal Analyzer *(New!)*
-Snap a photo of any meal and let GPT-4o Vision identify it and return:
-- **Calories & Macros**: Protein, carbs, fat, fiber, sugar, saturated fat.
-- **Key Micronutrients**: Iron, Vitamin C, Calcium, Potassium, Sodium, and more — with % Daily Value.
-- **Health Score** (1–10), a nutrition verdict, pros, cons, and improvement tips.
-- **Daily Log**: Meals are logged per user per day in Firestore, with running totals for calories, protein, carbs, and fat.
-
-### 📈 5. Health Score & Trend Tracking
-Receive an overall "Health Score" out of 10. As you upload subsequent reports, BloodAI provides interactive charts showing your progress over time.
-
-### 🔒 6. Secure & Private
-Your health data is sensitive. We use Firebase Auth for identity management and Firestore security rules to ensure data is accessible only by you.
+![BloodAI home page](docs/screenshots/landing-hero.png)
 
 ---
 
-## 🛠️ Tech Stack
+## The problem, in one paragraph
 
-### Frontend & UI
-| Tool | Purpose |
+You get a blood test. A few days later a PDF arrives full of things like
+*"Ferritin: 8 ng/mL"* and *"HbA1c: 6.2%"*. There's a reference range next to each one,
+so you can tell something is off — but not **why** it's off, **how serious** it is, or
+**what to do next**. Your doctor has ten minutes and will focus on the worst number.
+Everything else goes unexplained until, years later, it turns into a real problem.
+
+BloodAI reads that same report and explains it to you like a patient teacher would.
+
+---
+
+## How it works
+
+Three steps, about a minute or two.
+
+| | Step | What happens |
+|---|---|---|
+| **1** | **Upload** | Drop in a PDF or take a photo of your report. Any lab, any format. |
+| **2** | **AI reads it** | GPT-4o Vision pulls out every test on the page — the name, your value, the unit, and the normal range — and marks which ones are high, low, or fine. |
+| **3** | **You get a plan** | A summary in plain English, plus food, lifestyle, and supplement suggestions tied to your specific numbers. |
+
+---
+
+## What you actually get
+
+**For every single test on your report** — not just the bad ones:
+
+- What the test measures, in everyday words
+- Whether your value is normal, high, or low
+- If it's off: the likely reasons **why**, and what happens if you ignore it
+- A specific 30–90 day plan that references your actual number
+  (not "eat healthier" — more like *"your ferritin is 8, aim for 50+; iron bisglycinate
+  25mg with vitamin C, away from coffee; retest in 8 weeks"*)
+
+**And across the whole report:**
+
+- 🎯 **A health score out of 10** so you know roughly where you stand
+- 🔮 **Early warnings** — patterns across several markers that suggest what could develop
+  in 3–10 years, and how to avoid it
+- 💊 **Medication conflicts** — if you list your medicines, it flags known interactions
+  with your lab values
+- 🥗 **A food plan** — breakfast, lunch, dinner, snacks, and what to avoid, each with a
+  reason attached
+- 🧘 **Lifestyle guidance** — exercise, sleep, and stress advice linked to specific markers
+- 💬 **Ask questions** — chat with an AI about your own results
+- 📈 **Track progress** — upload later reports and see your trends on a chart
+- 🩺 **A letter for your doctor** — a clean summary you can print and take with you
+- 📸 **Meal check** — snap a photo of food and get calories, macros, and a health score
+
+---
+
+## Screenshots
+
+**Home page**
+
+![Home page, full](docs/screenshots/landing-full.png)
+
+**Upload screen** (you need a free account first)
+
+![Upload screen](docs/screenshots/upload.png)
+
+---
+
+## Built with
+
+| Part | What we use |
 |---|---|
-| [Next.js 16](https://nextjs.org/) (App Router) | Core framework |
-| [TypeScript](https://www.typescriptlang.org/) | Type safety |
-| [Tailwind CSS](https://tailwindcss.com/) | Styling |
-| [Framer Motion](https://www.framer.com/motion/) | Animations |
-| [Recharts](https://recharts.org/) | Charts & trend graphs |
-| [Lucide Icons](https://lucide.dev/) | Icon library |
-
-### Backend & AI
-| Tool | Purpose |
-|---|---|
-| [OpenAI GPT-4o](https://openai.com/) | Blood report & meal vision analysis |
-| [Firebase Auth](https://firebase.google.com/docs/auth) | User authentication |
-| [Cloud Firestore](https://firebase.google.com/docs/firestore) | Database (reports & meal logs) |
-| [Firebase Admin SDK](https://firebase.google.com/docs/admin/setup) | Server-side Firestore access |
-| [Sharp](https://sharp.pixelplumbing.com/) | Server-side image processing |
-| [Razorpay](https://razorpay.com/) | Payments |
+| Website | Next.js 16, React 19, TypeScript, Tailwind CSS |
+| Look and feel | Framer Motion (animation), Recharts (graphs), Lucide (icons) |
+| The AI | OpenAI GPT-4o Vision |
+| Accounts | Firebase Authentication |
+| Database | Cloud Firestore |
+| Reading PDFs | pdf.js in the browser, pdf-parse on the server |
+| Images | Sharp |
+| Payments | Razorpay |
 
 ---
 
-## 📁 Project Structure
+## Running it yourself
+
+You'll need [Node.js](https://nodejs.org) 20 or newer, a Firebase project, and an
+OpenAI API key.
+
+### 1. Get the code
+
+```bash
+git clone https://github.com/nazsats/blood-report-analyzer.git
+cd blood-report-analyzer
+npm install
+```
+
+### 2. Set up your keys
+
+Create a file called `.env` in the main folder:
+
+```env
+# ---- Firebase, for the browser ----
+# Firebase Console > Project settings > General > Your apps
+NEXT_PUBLIC_FIREBASE_API_KEY=your_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.firebasestorage.app
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+
+# ---- Firebase, for the server ----
+# Firebase Console > Project settings > Service accounts > Generate new private key.
+# Open the downloaded JSON and copy these two values out of it.
+# The private key must stay on ONE line, in quotes, with \n where the line breaks were.
+FIREBASE_ADMIN_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your_project.iam.gserviceaccount.com
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nMIIE...\n-----END PRIVATE KEY-----\n"
+
+# ---- OpenAI ----
+OPENAI_API_KEY=sk-proj-your_key
+
+# ---- Razorpay (only needed for paid plans) ----
+RAZORPAY_KEY_ID=your_razorpay_id
+RAZORPAY_KEY_SECRET=your_razorpay_secret
+NEXT_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_id
+```
+
+> **Easier alternative for the server keys:** instead of the two `FIREBASE_ADMIN_*`
+> values, you can point at the service account file directly and the app will read it:
+>
+> ```env
+> GOOGLE_APPLICATION_CREDENTIALS=C:\full\path\to\service-account.json
+> ```
+
+### 3. Start it
+
+```bash
+npm run dev
+```
+
+Open <http://localhost:3000>.
+
+### If something goes wrong
+
+| What you see | Usually means |
+|---|---|
+| `Missing FIREBASE_ADMIN_CLIENT_EMAIL` | Your `.env` is missing the server keys from step 2 |
+| `Incorrect API key provided` | Your OpenAI key is wrong, expired, or out of credit |
+| Upload spins, then fails | Check the terminal running `npm run dev` — the real error prints there |
+| Results page stays blank | Your Firestore security rules are probably blocking the read |
+
+---
+
+## Folder layout
 
 ```
 app/
 ├── api/
-│   ├── analyze/          # Blood report analysis endpoint (GPT-4o Vision)
-│   └── analyze-meal/     # Meal photo analysis & nutrition logging endpoint
-├── results/              # Analysis results & health score page
-├── history/              # Past report tracking
-├── upload/               # Document upload & processing
-└── profile/              # User profile page
-components/               # Reusable UI components
-lib/                      # Firebase client & admin configurations
-hooks/                    # Custom React hooks (Auth, etc.)
-public/                   # Static assets
+│   ├── analyze/          # Reads a blood report and returns the analysis
+│   ├── analyze-meal/     # Reads a food photo and logs the nutrition
+│   ├── chat/             # Answers questions about a report
+│   └── ...               # Subscription handling
+├── upload/               # Where you drop your report in
+├── results/[reportId]/   # The analysis, charts, and chat
+├── history/              # Your past reports
+├── share/[shareId]/      # A read-only link you can send to someone
+└── profile/              # Age, sex, medications, conditions
+components/               # Shared pieces of the interface
+lib/                      # Firebase setup (browser and server)
+hooks/                    # Reusable React logic
+docs/screenshots/         # The images in this README
 ```
 
 ---
 
-## 🚀 Getting Started
+## The API
 
-### 1. Clone the repository
-```bash
-git clone https://github.com/nazsats/blood-report-analyzer.git
-cd blood-report-analyzer
-```
-
-### 2. Install dependencies
-```bash
-npm install
-```
-
-### 3. Configure Environment Variables
-Create a `.env.local` file in the root directory:
-```env
-# Firebase (Client)
-NEXT_PUBLIC_FIREBASE_API_KEY=your_key
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
-
-# Firebase Admin (Server-side)
-FIREBASE_PROJECT_ID=your_project
-FIREBASE_CLIENT_EMAIL=your_service_account@your_project.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
-
-# OpenAI
-OPENAI_API_KEY=your_openai_key
-
-# Razorpay
-RAZORPAY_KEY_ID=your_razorpay_id
-RAZORPAY_KEY_SECRET=your_razorpay_secret
-```
-
-### 4. Run Development Server
-```bash
-npm run dev
-```
-Open [http://localhost:3000](http://localhost:3000) to see the app in action.
-
----
-
-## 📡 API Endpoints
+Both endpoints need a Firebase ID token in an `Authorization: Bearer <token>` header.
 
 ### `POST /api/analyze`
-Analyzes a blood test report (PDF or image).
-- **Auth**: Bearer token required
-- **Body**: `multipart/form-data` with `file` field
-- **Returns**: Parsed biomarkers, health score, diet & supplement recommendations
+
+Send a blood report as `multipart/form-data`.
+
+| Field | Required | Notes |
+|---|---|---|
+| `file` | yes | PDF or image. Send it multiple times for multi-page reports. |
+| `extractedText` | no | Text already pulled from the PDF in the browser. Speeds things up. |
+| `userAge`, `userGender`, `medications` | no | Makes the advice more specific to you. |
+
+Returns `{ success, reportId, shareUrl }`. The full analysis is written to the
+`reports/{reportId}` document in Firestore, which the results page listens to live.
 
 ### `POST /api/analyze-meal`
-Analyzes a food photo and logs nutrition data.
-- **Auth**: Bearer token required
-- **Body**: `multipart/form-data` with `file` field (image only)
-- **Returns**: `{ foodName, calories, macros, micros, healthScore, verdict, pros, cons, tips, mealType }`
-- **Side effect**: Saves entry to `mealLogs/{uid}_{date}/entries/{entryId}` and updates daily totals in Firestore
+
+Send a food photo as `multipart/form-data` in a `file` field.
+
+Returns food name, calories, macros, micronutrients, a health score out of 10, plus
+pros, cons and tips. Also saves the entry to `mealLogs/{uid}_{date}` and updates your
+running daily totals.
 
 ---
 
-## 📄 License
-This project is licensed under the MIT License.
+## Where this project is right now
+
+Being straight with you: this is an **early-stage project**, not a finished medical
+product.
+
+- It has **not** been clinically validated, and no accuracy study has been published
+- It is **not** certified or approved by any medical regulator
+- Analysis quality depends on how readable your report is — a clear PDF beats a blurry
+  photo every time
+- Your reports are encrypted in transit and at rest, and Firebase Authentication ties
+  them to your account. There is no automatic deletion yet, but you can delete any
+  report yourself from the History page.
 
 ---
 
-*⚠️ Disclaimer: BloodAI is for informational purposes only and does not constitute medical advice. Always consult a qualified healthcare professional.*
+## ⚠️ Important — please read
+
+**BloodAI is not a doctor and does not give medical advice.**
+
+It is an educational tool that helps you understand what is written on your lab report.
+It can be wrong. It can misread a number. It can miss something important.
+
+Never use it to diagnose yourself, and never start, stop, or change a medication or
+supplement based on what it says. Always talk to a qualified healthcare professional
+about your results — especially if anything is flagged as high, low, or concerning.
+
+If you feel unwell or think something is seriously wrong, contact a doctor or emergency
+services immediately.
+
+---
+
+## License
+
+MIT

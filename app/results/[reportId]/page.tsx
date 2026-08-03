@@ -348,7 +348,7 @@ export default function ResultsPage() {
               <div className="w-10 h-10 rounded-full border-2 border-amber-500/40 border-t-amber-400 animate-spin shrink-0" />
               <div>
                 <p className="font-semibold text-amber-200">AI is analysing your report…</p>
-                <p className="text-sm text-amber-400/70">This usually takes 10–30 seconds ✨</p>
+                <p className="text-sm text-amber-400/70">This usually takes a minute or two ✨</p>
               </div>
             </motion.div>
           )}

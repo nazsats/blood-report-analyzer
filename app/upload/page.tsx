@@ -241,7 +241,7 @@ export default function UploadPage() {
             transition={{ delay: 0.2 }}
             className="text-gray-400"
           >
-            Supports PDF, JPG, and PNG · Processed in under 30 seconds
+            Supports PDF, JPG, and PNG · Usually takes a minute or two
           </motion.p>
         </div>
 
@@ -432,7 +432,7 @@ export default function UploadPage() {
           transition={{ delay: 0.6 }}
           className="mt-8 flex flex-wrap justify-center gap-4 text-xs text-gray-600"
         >
-          {["🔒 End-to-end encrypted", "🏥 HIPAA compliant", "⚡ Results in 30s", "🗑️ Auto-deleted after 30 days"].map((t) => (
+          {["🔒 Encrypted in transit & at rest", "🔐 Private to your account", "⚡ Powered by GPT-4o Vision", "🗑️ Delete your reports anytime"].map((t) => (
             <span key={t}>{t}</span>
           ))}
         </motion.div>
