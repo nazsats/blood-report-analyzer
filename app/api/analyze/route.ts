@@ -18,9 +18,18 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
   }
 }
 
+// Without this the platform default (10-15s) kills the function long before a
+// vision analysis finishes. 60 is the ceiling on Vercel's Hobby plan; on Pro this
+// can go up to 300, which is worth doing for long multi-page reports.
+export const maxDuration = 60;
+export const runtime = 'nodejs';
+
 const openai = new OpenAI({
+  // Kept just under maxDuration so the SDK times out first and we can return a
+  // readable JSON error, rather than the platform hard-killing the function and
+  // returning an HTML error page.
+  timeout: 55000,
   apiKey: process.env.OPENAI_API_KEY,
-  timeout: 180000,
 });
 
 export async function OPTIONS() {
@@ -46,7 +55,9 @@ export async function POST(req: NextRequest) {
     const userGender = form.get('userGender') as string | null;
     const medications = form.get('medications') as string | null;
 
-    if (files.length === 0) {
+    // A text-based PDF is sent as extracted text with no images attached, so
+    // text on its own is a valid submission.
+    if (files.length === 0 && !extractedText?.trim()) {
       return NextResponse.json({ error: 'No files uploaded' }, { status: 400 });
     }
 
@@ -96,7 +107,8 @@ export async function POST(req: NextRequest) {
     const reportRef = adminDb.collection('reports').doc(reportId);
     await reportRef.set({
       userId: uid,
-      fileName: files[0].name,
+      // Text-only submissions carry the name separately, since there is no file part.
+      fileName: files[0]?.name || (form.get('fileName') as string) || 'report.pdf',
       status: 'processing',
       createdAt: FieldValue.serverTimestamp(),
     });
@@ -301,18 +313,36 @@ CRITICAL RULES:
     const shareId = uuidv4();
     await reportRef.update({ shareId });
 
-    return NextResponse.json({ success: true, reportId, shareUrl: `https://your-app.com/share/${shareId}` });
+    // Derive the origin from the request so share links work on every deployment
+    // (local, preview, production) instead of the placeholder host this used to emit.
+    const origin =
+      process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || req.nextUrl.origin;
+
+    return NextResponse.json({ success: true, reportId, shareUrl: `${origin}/share/${shareId}` });
 
   } catch (err: any) {
     console.error('[API Analyze] FATAL ERROR:', err);
+
+    // The OpenAI client is set to give up just before the function's own 60s
+    // budget, so this is the path a slow analysis takes. Say something the user
+    // can act on instead of leaving the report stuck on "processing".
+    const timedOut =
+      err?.name === 'APIConnectionTimeoutError' ||
+      err?.name === 'AbortError' ||
+      /timeout|timed out/i.test(err?.message || '');
+
+    const message = timedOut
+      ? 'The analysis took too long to finish. This usually means the report was very long or the scan was hard to read — try uploading fewer pages at a time, or a clearer scan.'
+      : `Server error: ${err.message}`;
+
     try {
       await adminDb.collection('reports').doc(reportId).update({
         status: 'error',
-        error: err.message,
+        error: message,
       });
     } catch (dbErr: any) {
       console.error('[API Analyze] Failed to log error to DB:', dbErr.message);
     }
-    return NextResponse.json({ error: `Server error: ${err.message}` }, { status: 500 });
+    return NextResponse.json({ error: message }, { status: timedOut ? 504 : 500 });
   }
 }

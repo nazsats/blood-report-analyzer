@@ -6,9 +6,15 @@ import { adminDb, getAdminApp } from '@/lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
 import sharp from 'sharp';
 
+// See the analyze route: without this the platform default kills the function
+// mid-analysis. 60 is the Hobby-plan ceiling; Pro allows up to 300.
+export const maxDuration = 60;
+export const runtime = 'nodejs';
+
 const openai = new OpenAI({
+  // Just under maxDuration, so a slow model call surfaces as a JSON error.
+  timeout: 55000,
   apiKey: process.env.OPENAI_API_KEY,
-  timeout: 60000,
 });
 
 export async function OPTIONS() {

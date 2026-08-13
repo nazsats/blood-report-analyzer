@@ -1,12 +1,7 @@
 // app/api/create-subscription/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import Razorpay from 'razorpay';
+import { getRazorpay } from '@/lib/razorpayClient';
 import { getAdminApp } from '@/lib/firebaseAdmin';
-
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
 
 export async function POST(req: NextRequest) {
   let planId = "";
@@ -26,7 +21,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Plan ID required' }, { status: 400 });
     }
 
-    const subscription = await razorpay.subscriptions.create({
+    const subscription = await getRazorpay().subscriptions.create({
       plan_id: planId,
       total_count: 12, // 12 billing cycles (1 year max)
       customer_notify: 1, // Send SMS/email notifications

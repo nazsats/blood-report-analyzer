@@ -17,6 +17,91 @@ const LOADING_MESSAGES = [
   { text: "Finalizing your wellness protocol...", icon: CheckCircle2 },
 ];
 
+// Vercel rejects serverless request bodies over 4.5 MB before the route ever runs,
+// so everything we send has to fit under that with room to spare.
+const MAX_UPLOAD_BYTES = 4 * 1024 * 1024;
+// Longest edge we send to the vision model. It downscales anything larger than
+// 2048 for high-detail reads anyway, so bigger just costs upload time.
+const MAX_IMAGE_EDGE = 2048;
+// Each page image adds several seconds of model prefill. The analyze route runs on
+// a 60s budget, so cap how many pages of a scanned PDF go in one request.
+const MAX_SCANNED_PAGES = 4;
+// A PDF yielding this much text is a real text PDF, not a scan — the text alone is
+// everything the model needs, so we skip the page images and send a few KB instead.
+const TEXT_PDF_MIN_CHARS = 200;
+
+/** Downscale and re-encode an image so it fits the byte budget. Falls back to the
+ *  smallest encoding we managed if even the lowest quality overshoots. */
+async function compressImage(source: Blob, maxBytes: number): Promise<Blob> {
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(source);
+  } catch {
+    return source; // Not decodable here — let the server deal with it.
+  }
+
+  let { width, height } = bitmap;
+  const longestEdge = Math.max(width, height);
+  if (longestEdge > MAX_IMAGE_EDGE) {
+    const ratio = MAX_IMAGE_EDGE / longestEdge;
+    width = Math.round(width * ratio);
+    height = Math.round(height * ratio);
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    bitmap.close();
+    return source;
+  }
+  ctx.drawImage(bitmap, 0, 0, width, height);
+  bitmap.close();
+
+  let smallest: Blob | null = null;
+  for (const quality of [0.85, 0.7, 0.55, 0.4]) {
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/jpeg", quality)
+    );
+    if (!blob) continue;
+    if (blob.size <= maxBytes) return blob;
+    smallest = blob;
+  }
+  return smallest ?? source;
+}
+
+/** Total bytes FormData will actually put on the wire, near enough to guard on. */
+function formDataSize(formData: FormData): number {
+  let total = 0;
+  formData.forEach((value) => {
+    total += value instanceof Blob ? value.size : new Blob([String(value)]).size;
+  });
+  return total;
+}
+
+/** Platform failures (413 too-large, 504 timeout) return HTML rather than JSON.
+ *  Reading the body defensively means the user sees the real cause instead of a
+ *  "Unexpected token" JSON parse error from the response that explained it. */
+async function describeHttpError(res: Response): Promise<string> {
+  const body = await res.text().catch(() => "");
+  try {
+    const parsed = JSON.parse(body);
+    if (parsed?.error) return String(parsed.error);
+  } catch {
+    // Not JSON — fall through to a message based on the status code.
+  }
+  if (res.status === 413) {
+    return "That file is too large to upload. Try a lower-resolution scan, or split a long report into fewer pages.";
+  }
+  if (res.status === 504 || res.status === 408) {
+    return "The analysis timed out. Long or multi-page reports can exceed the limit — try again, or upload fewer pages at once.";
+  }
+  if (res.status === 401) return "Your session expired. Please sign in again.";
+  if (res.status >= 500) return `The server hit an error (${res.status}). Please try again in a moment.`;
+  return `Upload failed (${res.status}). Please try again.`;
+}
+
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -60,7 +145,9 @@ export default function UploadPage() {
       const arrayBuffer = await pdfFile.arrayBuffer();
       // @ts-ignore
       const pdfjsLib = await import("pdfjs-dist/build/pdf.mjs");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+      // Served from public/ rather than a CDN: guarantees the worker version matches
+      // the bundled library, and keeps PDFs working on networks that block unpkg.
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "/pdf.worker.min.mjs";
       const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
       const pdf = await loadingTask.promise;
       const pageImages: string[] = [];
@@ -115,36 +202,67 @@ export default function UploadPage() {
     setError("");
     setSuccess(false);
     setLoadingStep(0);
-    const formData = new FormData();
-    if (file.type === "application/pdf" && pdfPages.length > 0) {
-      try {
-        for (let i = 0; i < pdfPages.length; i++) {
-          const response = await fetch(pdfPages[i]);
-          const blob = await response.blob();
-          formData.append("file", new File([blob], `${file.name.replace(/\.pdf$/i, "")}_page_${i + 1}.jpg`, { type: "image/jpeg" }));
-        }
-      } catch {
-        formData.append("file", file);
-      }
-    } else {
-      formData.append("file", file);
-    }
-    if (extractedText) formData.append("extractedText", extractedText);
+
+    let succeeded = false;
     try {
+      const formData = new FormData();
+      const isPdf = file.type === "application/pdf";
+      const hasRealText = extractedText.trim().length >= TEXT_PDF_MIN_CHARS;
+
+      if (isPdf && hasRealText) {
+        // Text-based PDF: send the text alone. A few KB instead of several MB.
+        formData.append("extractedText", extractedText);
+        formData.append("fileName", file.name);
+      } else if (isPdf && pdfPages.length > 0) {
+        // Scanned PDF: pages share both the byte budget and the 60s time budget.
+        const pages = pdfPages.slice(0, MAX_SCANNED_PAGES);
+        const perPage = Math.floor(MAX_UPLOAD_BYTES / pages.length);
+        const baseName = file.name.replace(/\.pdf$/i, "");
+        for (let i = 0; i < pages.length; i++) {
+          const rendered = await (await fetch(pages[i])).blob();
+          const compressed = await compressImage(rendered, perPage);
+          formData.append(
+            "file",
+            new File([compressed], `${baseName}_page_${i + 1}.jpg`, { type: "image/jpeg" })
+          );
+        }
+        if (extractedText) formData.append("extractedText", extractedText);
+      } else {
+        // Single image — phone photos routinely exceed the limit on their own.
+        const compressed = await compressImage(file, MAX_UPLOAD_BYTES);
+        const baseName = file.name.replace(/\.[^.]+$/, "");
+        formData.append(
+          "file",
+          new File([compressed], `${baseName}.jpg`, { type: "image/jpeg" })
+        );
+      }
+
+      // Stop here rather than letting the platform return an opaque 413.
+      const payloadSize = formDataSize(formData);
+      if (payloadSize > MAX_UPLOAD_BYTES) {
+        throw new Error(
+          `This report is too large to analyse in one go (${(payloadSize / 1024 / 1024).toFixed(1)} MB after compression, limit is ${MAX_UPLOAD_BYTES / 1024 / 1024} MB). Try splitting it into fewer pages, or upload a lower-resolution scan.`
+        );
+      }
+
       const idToken = await user.getIdToken();
       const res = await fetch("/api/analyze", {
         method: "POST",
         body: formData,
         headers: { Authorization: `Bearer ${idToken}` },
       });
+
+      if (!res.ok) throw new Error(await describeHttpError(res));
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Analysis failed");
+      succeeded = true;
       setSuccess(true);
       setTimeout(() => router.push(`/results/${data.reportId}`), 1000);
     } catch (err: any) {
       setError(err.message || "Something went wrong. Please try again.");
     } finally {
-      if (!success) setUploading(false);
+      // `success` from state is still false in this closure — track it locally.
+      if (!succeeded) setUploading(false);
     }
   };
 
@@ -368,6 +486,22 @@ export default function UploadPage() {
                         </div>
                       )}
                     </div>
+
+                    {/* A scanned PDF has no extractable text, so every page costs
+                        model time. Say up front that we only send the first few. */}
+                    {file.type === "application/pdf" &&
+                      !isExtracting &&
+                      extractedText.trim().length < TEXT_PDF_MIN_CHARS &&
+                      pdfPages.length > MAX_SCANNED_PAGES && (
+                        <div className="mt-4 flex items-start gap-2.5 rounded-xl border border-amber-500/25 bg-amber-500/10 p-3 text-xs text-amber-200/90">
+                          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-400" />
+                          <span>
+                            This is a scanned PDF with {pdfPages.length} pages. Only the first{" "}
+                            {MAX_SCANNED_PAGES} will be analysed, to keep the analysis inside its
+                            time limit. Split the file if you need the rest.
+                          </span>
+                        </div>
+                      )}
                   </div>
 
                   {/* Action buttons */}

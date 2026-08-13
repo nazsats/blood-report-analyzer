@@ -1,0 +1,3 @@
+# The pdf.js worker is a vendored, minified build copied from node_modules.
+# Keep it byte-identical to what pdfjs-dist shipped — no line-ending rewriting.
+public/pdf.worker.min.mjs -text

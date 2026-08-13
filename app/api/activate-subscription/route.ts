@@ -1,14 +1,9 @@
 // app/api/activate-subscription/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import Razorpay from 'razorpay';
+import { getRazorpay } from '@/lib/razorpayClient';
 import { getAdminApp } from '@/lib/firebaseAdmin';
 import crypto from 'crypto';
 import { FieldValue } from 'firebase-admin/firestore';
-
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,7 +26,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify subscription is active
-    const sub = await razorpay.subscriptions.fetch(subscriptionId);
+    const sub = await getRazorpay().subscriptions.fetch(subscriptionId);
     if (sub.status !== 'active' && sub.status !== 'authenticated') {
       return NextResponse.json({ error: 'Subscription not active' }, { status: 400 });
     }

@@ -3,7 +3,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { getAdminApp } from '@/lib/firebaseAdmin';
 
+// See the analyze route: without this the platform default can cut off a reply
+// that is still generating. 60 is the Hobby-plan ceiling; Pro allows up to 300.
+export const maxDuration = 60;
+export const runtime = 'nodejs';
+
 const openai = new OpenAI({
+  timeout: 55000,
   apiKey: process.env.OPENAI_API_KEY,
 });
 
