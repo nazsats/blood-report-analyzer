@@ -5,10 +5,15 @@ import OpenAI from 'openai';
 import { adminDb, getAdminApp } from '@/lib/firebaseAdmin';
 import sharp from 'sharp';
 import { FieldValue } from 'firebase-admin/firestore';
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const { PDFParse } = require('pdf-parse') as typeof import('pdf-parse');
 
+// pdf-parse is loaded on demand, never at module scope. Importing it eagerly pulls in
+// @napi-rs/canvas, a native module: if that binary is missing from the deployed bundle
+// the require throws while the route module is still being evaluated, so the handler's
+// try/catch never runs and every upload — even a plain image that never touches a PDF —
+// fails with an opaque HTML 500. Deferring it confines that failure to the one branch
+// that actually needs a PDF parsed server-side.
 async function extractPdfText(buffer: Buffer): Promise<string> {
+  const { PDFParse } = await import('pdf-parse');
   const parser = new PDFParse({ data: buffer });
   try {
     const result = await parser.getText();
@@ -130,7 +135,19 @@ export async function POST(req: NextRequest) {
       } else if (isPDF && !extractedText) {
         // Fallback: If client didn't extract text, do it on the server
         console.log('[API Analyze] Extracting text from PDF on server...');
-        extractedText = await extractPdfText(buffer);
+        try {
+          extractedText = await extractPdfText(buffer);
+        } catch (pdfErr) {
+          // The web client extracts PDF text in the browser, so only a caller that
+          // posts a raw PDF reaches this. Fail with something the user can act on
+          // rather than letting a parser problem read as a generic server error.
+          console.error('[API Analyze] Server-side PDF extraction failed:', pdfErr);
+          const message = 'This PDF could not be read on the server. Please upload it as an image, or try a different file.';
+          // The report doc is already 'processing' by this point — close it out, or it
+          // sits unresolved in the user's history forever.
+          await reportRef.update({ status: 'error', error: message });
+          return NextResponse.json({ error: message }, { status: 422 });
+        }
       }
     }
 

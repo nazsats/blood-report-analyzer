@@ -2,6 +2,19 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ['pdf-parse', 'sharp'],
+  // pdf-parse reaches @napi-rs/canvas through a bare require the file tracer cannot see,
+  // so the native dependency was silently left out of the deployment and the route threw
+  // MODULE_NOT_FOUND while it was still being imported. Name it explicitly.
+  outputFileTracingIncludes: {
+    // pdf-parse carries no nested copy, so both it and the pdfjs-dist it bundles resolve
+    // to the hoisted one — that single copy is all this route needs. The glob keeps the
+    // per-platform binary package too (canvas-linux-x64-gnu on the deploy target).
+    '/api/analyze': ['./node_modules/@napi-rs/canvas*/**/*'],
+  },
+  // Note: naming the hoisted copy also makes the tracer pull in the nested @napi-rs copies
+  // under pdfjs-dist and pdf-to-img, which nothing server-side loads. That lands the
+  // function around 123MB against a 250MB limit, so it is left alone —
+  // outputFileTracingExcludes does not currently remove them under Turbopack.
   async headers() {
     return [
       {
