@@ -44,3 +44,7 @@ next-env.d.ts
 config/service-account.json
 *.json  # Optional: if you want to block all JSON files with secrets
 .env*
+# Firebase CLI noise
+firebase-debug.log
+*-debug.log
+.firebase/
