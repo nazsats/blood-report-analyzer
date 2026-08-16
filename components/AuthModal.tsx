@@ -110,7 +110,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = "signin" }: A
                         {/* Close */}
                         <motion.button whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
                             onClick={onClose}
-                            className="absolute top-5 right-5 p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-500 hover:text-gray-200 transition-all z-10">
+                            className="absolute top-5 right-5 p-2 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-gray-200 transition-all z-10">
                             <X className="w-4 h-4" />
                         </motion.button>
 
@@ -118,16 +118,16 @@ export default function AuthModal({ isOpen, onClose, initialMode = "signin" }: A
                             {/* Logo */}
                             <div className="flex items-center justify-center mb-7">
                                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary-600 to-secondary-500 flex items-center justify-center shadow-xl shadow-primary-500/30">
-                                    <Activity className="w-7 h-7 text-white" />
+                                    <Activity className="w-7 h-7 text-gray-900 dark:text-white" />
                                 </div>
                             </div>
 
                             {/* Header */}
                             <div className="text-center mb-7">
-                                <motion.h2 layout className="text-3xl font-black text-white mb-2">
+                                <motion.h2 layout className="text-3xl font-black text-gray-900 dark:text-white mb-2">
                                     {isSignup ? "Create Account" : "Welcome Back"}
                                 </motion.h2>
-                                <p className="text-gray-500 text-sm">
+                                <p className="text-gray-500 dark:text-gray-400 text-sm">
                                     {isSignup
                                         ? "Start your AI-powered blood analysis journey."
                                         : "Sign in to access your reports and dashboard."}
@@ -138,7 +138,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = "signin" }: A
                             <motion.button
                                 whileHover={{ scale: 1.02, y: -1 }} whileTap={{ scale: 0.98 }}
                                 onClick={handleGoogle} disabled={loading}
-                                className="w-full py-3.5 mb-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 font-semibold flex items-center justify-center gap-3 transition-all disabled:opacity-50 text-gray-200 text-sm">
+                                className="w-full py-3.5 mb-5 rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/5 hover:bg-white/10 font-semibold flex items-center justify-center gap-3 transition-all disabled:opacity-50 text-gray-800 dark:text-gray-200 text-sm">
                                 <svg className="h-4 w-4" viewBox="0 0 24 24">
                                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.51h5.84c-.25 1.31-.98 2.42-2.07 3.16v2.6h3.35c1.96-1.81 3.09-4.47 3.09-7.51z" fill="#4285F4" />
                                     <path d="M12 23c2.97 0 5.46-1.01 7.28-2.73l-3.35-2.6c-1.01.68-2.29 1.08-3.93 1.08-3.02 0-5.58-2.04-6.49-4.79H.96v2.67C2.75 20.94 6.97 23 12 23z" fill="#34A853" />
@@ -150,26 +150,26 @@ export default function AuthModal({ isOpen, onClose, initialMode = "signin" }: A
 
                             {/* Divider */}
                             <div className="relative flex items-center gap-4 mb-5">
-                                <div className="flex-1 h-px bg-white/8" />
-                                <span className="text-gray-600 text-xs font-medium">or with email</span>
-                                <div className="flex-1 h-px bg-white/8" />
+                                <div className="flex-1 h-px bg-gray-50 dark:bg-white/8" />
+                                <span className="text-gray-600 dark:text-gray-400 text-xs font-medium">or with email</span>
+                                <div className="flex-1 h-px bg-gray-50 dark:bg-white/8" />
                             </div>
 
                             {/* Email / Password */}
                             <div className="space-y-3 mb-5">
                                 <div className="relative group">
-                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-primary-400 transition-colors" />
+                                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 dark:text-gray-400 group-focus-within:text-primary-400 transition-colors" />
                                     <input type="email" placeholder="Email address" value={email}
                                         onChange={(e) => setEmail(e.target.value)}
                                         onKeyDown={(e) => e.key === "Enter" && handleEmailAuth()}
-                                        className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:border-primary-500/60 focus:bg-white/8 transition-all text-white placeholder:text-gray-600 text-sm" />
+                                        className="w-full pl-11 pr-4 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:outline-none focus:border-primary-500/60 focus:bg-white/8 transition-all text-gray-900 dark:text-white placeholder:text-gray-600 text-sm" />
                                 </div>
                                 <div className="relative group">
-                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 group-focus-within:text-primary-400 transition-colors" />
+                                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-600 dark:text-gray-400 group-focus-within:text-primary-400 transition-colors" />
                                     <input type="password" placeholder="Password" value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         onKeyDown={(e) => e.key === "Enter" && handleEmailAuth()}
-                                        className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:border-primary-500/60 focus:bg-white/8 transition-all text-white placeholder:text-gray-600 text-sm" />
+                                        className="w-full pl-11 pr-4 py-3.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:outline-none focus:border-primary-500/60 focus:bg-white/8 transition-all text-gray-900 dark:text-white placeholder:text-gray-600 text-sm" />
                                 </div>
                             </div>
 
@@ -190,10 +190,10 @@ export default function AuthModal({ isOpen, onClose, initialMode = "signin" }: A
                             </motion.button>
 
                             {/* Toggle */}
-                            <p className="text-center text-gray-600 text-xs">
+                            <p className="text-center text-gray-600 dark:text-gray-400 text-xs">
                                 {isSignup ? "Already have an account? " : "Don't have an account? "}
                                 <button onClick={() => { setIsSignup(!isSignup); setError(""); }}
-                                    className="text-primary-400 font-bold hover:text-primary-300 transition-colors underline underline-offset-2">
+                                    className="text-primary-600 dark:text-primary-400 font-bold hover:text-primary-300 transition-colors underline underline-offset-2">
                                     {isSignup ? "Sign In" : "Sign Up"}
                                 </button>
                             </p>

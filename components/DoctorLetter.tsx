@@ -139,7 +139,7 @@ export default function DoctorLetter({ reportData, patientName = "" }: DoctorLet
             <motion.button
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                 onClick={() => setIsOpen(true)}
-                className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-secondary-500/15 border border-secondary-500/25 text-secondary-300 hover:bg-secondary-500/25 transition-all text-sm font-semibold">
+                className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-secondary-500/15 border border-secondary-500/25 text-secondary-700 dark:text-secondary-300 hover:bg-secondary-500/25 transition-all text-sm font-semibold">
                 <FileText className="w-4 h-4" />
                 Doctor Letter
             </motion.button>
@@ -162,43 +162,43 @@ export default function DoctorLetter({ reportData, patientName = "" }: DoctorLet
                             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-secondary-500 to-transparent" />
 
                             {/* Header */}
-                            <div className="flex items-center justify-between p-6 border-b border-white/8 shrink-0">
+                            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-white/8 shrink-0">
                                 <div>
-                                    <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
-                                        <FileText className="w-5 h-5 text-secondary-400" /> Doctor Summary Letter
+                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
+                                        <FileText className="w-5 h-5 text-secondary-600 dark:text-secondary-400" /> Doctor Summary Letter
                                     </h2>
-                                    <p className="text-gray-500 text-xs mt-1">A formatted letter you can share with your physician</p>
+                                    <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">A formatted letter you can share with your physician</p>
                                 </div>
                                 <button onClick={() => setIsOpen(false)}
-                                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white transition-all">
+                                    className="p-2 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-white transition-all">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
 
                             {/* Name input */}
-                            <div className="px-6 py-4 border-b border-white/8 shrink-0">
-                                <label className="text-xs text-gray-500 font-medium mb-1.5 block">Your name (for the letter)</label>
+                            <div className="px-6 py-4 border-b border-gray-200 dark:border-white/8 shrink-0">
+                                <label className="text-xs text-gray-500 dark:text-gray-400 font-medium mb-1.5 block">Your name (for the letter)</label>
                                 <input type="text" value={name} onChange={e => setName(e.target.value)}
                                     placeholder="e.g. Rahul Sharma"
-                                    className="w-full max-w-xs bg-white/5 border border-white/10 text-white placeholder:text-gray-600 px-4 py-2.5 rounded-xl focus:outline-none focus:border-secondary-500/50 text-sm" />
+                                    className="w-full max-w-xs bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-600 px-4 py-2.5 rounded-xl focus:outline-none focus:border-secondary-500/50 text-sm" />
                             </div>
 
                             {/* Letter preview */}
                             <div className="flex-1 overflow-y-auto p-6">
-                                <pre className="text-gray-300 text-xs leading-relaxed whitespace-pre-wrap font-mono bg-white/3 border border-white/6 rounded-2xl p-5">
+                                <pre className="text-gray-700 dark:text-gray-300 text-xs leading-relaxed whitespace-pre-wrap font-mono bg-gray-50 dark:bg-white/3 border border-gray-200 dark:border-white/6 rounded-2xl p-5">
                                     {letter}
                                 </pre>
                             </div>
 
                             {/* Actions */}
-                            <div className="flex flex-wrap gap-3 p-6 border-t border-white/8 shrink-0">
+                            <div className="flex flex-wrap gap-3 p-6 border-t border-gray-200 dark:border-white/8 shrink-0">
                                 <button onClick={handleCopy}
-                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/8 border border-white/10 text-gray-300 hover:text-white hover:bg-white/12 transition-all text-sm font-medium">
-                                    {copied ? <Check className="w-4 h-4 text-accent-400" /> : <Copy className="w-4 h-4" />}
+                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-50 dark:bg-white/8 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:text-white hover:bg-white/12 transition-all text-sm font-medium">
+                                    {copied ? <Check className="w-4 h-4 text-accent-600 dark:text-accent-400" /> : <Copy className="w-4 h-4" />}
                                     {copied ? "Copied!" : "Copy"}
                                 </button>
                                 <button onClick={handlePrint}
-                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/8 border border-white/10 text-gray-300 hover:text-white hover:bg-white/12 transition-all text-sm font-medium">
+                                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-50 dark:bg-white/8 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 hover:text-white hover:bg-white/12 transition-all text-sm font-medium">
                                     <Printer className="w-4 h-4" /> Print
                                 </button>
                                 <button onClick={handleDownload}

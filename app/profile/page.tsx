@@ -178,16 +178,16 @@ export default function ProfilePage() {
 
   if (loading || loadingData) {
     return (
-      <div className="min-h-screen bg-[#0a0414] flex items-center justify-center">
-        <Loader2 className="w-10 h-10 animate-spin text-primary-400" />
+      <div className="min-h-screen bg-white dark:bg-[#08110F] flex items-center justify-center">
+        <Loader2 className="w-10 h-10 animate-spin text-primary-600 dark:text-primary-400" />
       </div>
     );
   }
 
-  const scoreColor = (s: number) => s >= 8 ? "text-green-400" : s >= 6 ? "text-secondary-400" : s >= 4 ? "text-amber-400" : "text-red-400";
+  const scoreColor = (s: number) => s >= 8 ? "text-green-400" : s >= 6 ? "text-secondary-600 dark:text-secondary-400" : s >= 4 ? "text-amber-400" : "text-red-400";
 
   return (
-    <div className="min-h-screen bg-[#0a0414] relative pt-24 pb-16 px-4">
+    <div className="min-h-screen bg-white dark:bg-[#08110F] relative pt-24 pb-16 px-4">
       {/* Ambient blobs */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/3 w-[400px] h-[400px] bg-primary-600/8 rounded-full blur-[100px]" />
@@ -199,17 +199,17 @@ export default function ProfilePage() {
         {/* ── Page header ── */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-center justify-between">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-300 text-xs font-semibold uppercase tracking-widest mb-3">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-700 dark:text-primary-300 text-xs font-semibold uppercase tracking-widest mb-3">
               <User className="w-3 h-3" /> Health Profile
             </div>
-            <h1 className="text-3xl font-black text-white">
+            <h1 className="text-3xl font-black text-gray-900 dark:text-white">
               {profile.firstName ? `${profile.firstName}'s Profile` : "My Profile"}
             </h1>
           </div>
           {!isEditing && (
             <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
               onClick={() => setIsEditing(true)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary-500/15 border border-primary-500/25 text-primary-300 hover:bg-primary-500/25 transition-all text-sm font-semibold">
+              className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary-500/15 border border-primary-500/25 text-primary-700 dark:text-primary-300 hover:bg-primary-500/25 transition-all text-sm font-semibold">
               <Edit3 className="w-4 h-4" /> Edit Profile
             </motion.button>
           )}
@@ -222,7 +222,7 @@ export default function ProfilePage() {
             <motion.div key="view" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
 
               {/* Profile hero card */}
-              <div className="glass-card border border-white/10 rounded-3xl p-8">
+              <div className="glass-card border border-gray-200 dark:border-white/10 rounded-3xl p-8">
                 <div className="flex flex-col sm:flex-row gap-6 items-start">
                   {/* Avatar */}
                   <div className="relative shrink-0">
@@ -230,11 +230,11 @@ export default function ProfilePage() {
                       {profile.profileImageUrl ? (
                         <Image src={profile.profileImageUrl} alt="Profile" fill className="object-cover" />
                       ) : (
-                        <User className="w-10 h-10 text-primary-400" />
+                        <User className="w-10 h-10 text-primary-600 dark:text-primary-400" />
                       )}
                     </div>
                     <label className="absolute -bottom-2 -right-2 w-8 h-8 rounded-xl bg-primary-600 flex items-center justify-center cursor-pointer hover:bg-primary-500 transition-colors shadow-lg">
-                      <Camera className="w-3.5 h-3.5 text-white" />
+                      <Camera className="w-3.5 h-3.5 text-gray-900 dark:text-white" />
                       <input type="file" accept="image/*" className="hidden"
                         onChange={e => { if (e.target.files?.[0]) handlePhotoUpload(e.target.files[0]); }} />
                     </label>
@@ -242,29 +242,29 @@ export default function ProfilePage() {
 
                   {/* Info */}
                   <div className="flex-1">
-                    <h2 className="text-2xl font-black text-white">
+                    <h2 className="text-2xl font-black text-gray-900 dark:text-white">
                       {profile.firstName || profile.lastName
                         ? `${profile.firstName} ${profile.lastName}`.trim()
                         : user?.displayName || "Anonymous User"}
                     </h2>
                     <div className="flex flex-wrap gap-4 mt-3">
                       {profile.email && (
-                        <div className="flex items-center gap-1.5 text-gray-400 text-sm">
+                        <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 text-sm">
                           <Mail className="w-3.5 h-3.5" /> {profile.email}
                         </div>
                       )}
                       {profile.phoneNumber && (
-                        <div className="flex items-center gap-1.5 text-gray-400 text-sm">
+                        <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 text-sm">
                           <Phone className="w-3.5 h-3.5" /> {profile.phoneNumber}
                         </div>
                       )}
                       {profile.dateOfBirth && (
-                        <div className="flex items-center gap-1.5 text-gray-400 text-sm">
+                        <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 text-sm">
                           <Calendar className="w-3.5 h-3.5" /> {calcAge(profile.dateOfBirth)}
                         </div>
                       )}
                       {profile.gender && (
-                        <div className="flex items-center gap-1.5 text-gray-400 text-sm capitalize">
+                        <div className="flex items-center gap-1.5 text-gray-600 dark:text-gray-400 text-sm capitalize">
                           <User className="w-3.5 h-3.5" /> {profile.gender}
                         </div>
                       )}
@@ -286,10 +286,10 @@ export default function ProfilePage() {
               {stats && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   {[
-                    { label: "Total Reports", value: stats.totalReports, icon: FileText, color: "text-secondary-400", bg: "bg-secondary-500/10", border: "border-secondary-500/20" },
+                    { label: "Total Reports", value: stats.totalReports, icon: FileText, color: "text-secondary-600 dark:text-secondary-400", bg: "bg-secondary-500/10", border: "border-secondary-500/20" },
                     { label: "Avg Health Score", value: `${stats.avgScore}/10`, icon: TrendingUp, color: scoreColor(stats.avgScore), bg: "bg-accent-500/10", border: "border-accent-500/20" },
                     { label: "Best Score", value: `${stats.bestScore}/10`, icon: Target, color: scoreColor(stats.bestScore), bg: "bg-primary-500/10", border: "border-primary-500/20" },
-                    { label: "Latest Risk", value: stats.latestRisk || "—", icon: Shield, color: RISK_COLORS[stats.latestRisk] || "text-gray-400", bg: "bg-white/5", border: "border-white/10" },
+                    { label: "Latest Risk", value: stats.latestRisk || "—", icon: Shield, color: RISK_COLORS[stats.latestRisk] || "text-gray-600 dark:text-gray-400", bg: "bg-gray-50 dark:bg-white/5", border: "border-gray-200 dark:border-white/10" },
                   ].map(({ label, value, icon: Icon, color, bg, border }) => (
                     <motion.div key={label} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                       className={`glass-card border ${border} rounded-2xl p-5`}>
@@ -297,7 +297,7 @@ export default function ProfilePage() {
                         <Icon className={`w-4 h-4 ${color}`} />
                       </div>
                       <p className={`text-xl font-black ${color} capitalize`}>{value}</p>
-                      <p className="text-gray-500 text-xs mt-1">{label}</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">{label}</p>
                     </motion.div>
                   ))}
                 </div>
@@ -307,8 +307,8 @@ export default function ProfilePage() {
               <div className="grid md:grid-cols-2 gap-6">
 
                 {/* Health conditions */}
-                <div className="glass-card border border-white/10 rounded-2xl p-6 space-y-4">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <div className="glass-card border border-gray-200 dark:border-white/10 rounded-2xl p-6 space-y-4">
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
                     <Heart className="w-4 h-4 text-red-400" /> Medical History
                   </h3>
                   <InfoRow icon={<Activity className="w-3.5 h-3.5 text-amber-400" />} label="Chronic Conditions"
@@ -322,14 +322,14 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Recent reports */}
-                <div className="glass-card border border-white/10 rounded-2xl p-6 space-y-4">
-                  <h3 className="text-base font-bold text-white flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-primary-400" /> Recent Reports
+                <div className="glass-card border border-gray-200 dark:border-white/10 rounded-2xl p-6 space-y-4">
+                  <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-primary-600 dark:text-primary-400" /> Recent Reports
                   </h3>
                   {recentReports.length === 0 ? (
                     <div className="text-center py-8">
                       <FileText className="w-10 h-10 text-gray-700 mx-auto mb-3" />
-                      <p className="text-gray-500 text-sm mb-4">No reports yet</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">No reports yet</p>
                       <Link href="/upload"
                         className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary-600/80 text-white text-sm font-semibold hover:bg-primary-600 transition-colors">
                         <Upload className="w-3.5 h-3.5" /> Upload Report
@@ -339,24 +339,24 @@ export default function ProfilePage() {
                     <div className="space-y-3">
                       {recentReports.map((r, i) => (
                         <Link key={i} href={`/results/${r.id}`}
-                          className="flex items-center gap-3 p-3 rounded-xl bg-white/4 border border-white/6 hover:bg-white/8 transition-all group">
+                          className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-white/4 border border-gray-200 dark:border-white/6 hover:bg-white/8 transition-all group">
                           <div className="w-8 h-8 rounded-lg bg-primary-500/15 flex items-center justify-center shrink-0">
-                            <FileText className="w-4 h-4 text-primary-400" />
+                            <FileText className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-white text-sm font-medium truncate">{r.fileName}</p>
-                            <p className="text-gray-500 text-xs">
+                            <p className="text-gray-900 dark:text-white text-sm font-medium truncate">{r.fileName}</p>
+                            <p className="text-gray-500 dark:text-gray-400 text-xs">
                               {r.createdAt?.toDate?.() ? new Date(r.createdAt.toDate()).toLocaleDateString() : "—"}
                             </p>
                           </div>
                           {r.overallScore && (
                             <span className={`text-sm font-bold ${scoreColor(r.overallScore)} shrink-0`}>{r.overallScore}/10</span>
                           )}
-                          <ChevronRight className="w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-colors shrink-0" />
+                          <ChevronRight className="w-4 h-4 text-gray-600 dark:text-gray-400 group-hover:text-gray-400 transition-colors shrink-0" />
                         </Link>
                       ))}
                       <Link href="/history"
-                        className="flex items-center justify-center gap-2 text-primary-400 text-xs font-semibold hover:text-primary-300 transition-colors py-2">
+                        className="flex items-center justify-center gap-2 text-primary-600 dark:text-primary-400 text-xs font-semibold hover:text-primary-300 transition-colors py-2">
                         View all reports <ChevronRight className="w-3.5 h-3.5" />
                       </Link>
                     </div>
@@ -386,19 +386,19 @@ export default function ProfilePage() {
           {/* ── Edit Mode ── */}
           {isEditing && (
             <motion.div key="edit" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="glass-card border border-white/10 rounded-3xl overflow-hidden">
+              className="glass-card border border-gray-200 dark:border-white/10 rounded-3xl overflow-hidden">
 
               {/* Edit header */}
-              <div className="flex items-center justify-between p-6 border-b border-white/8">
+              <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-white/8">
                 <div className="flex items-center gap-3">
                   {profile.isProfileComplete && (
-                    <button onClick={() => setIsEditing(false)} className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-all">
+                    <button onClick={() => setIsEditing(false)} className="p-2 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-600 dark:text-gray-400 hover:text-white transition-all">
                       <ArrowLeft className="w-4 h-4" />
                     </button>
                   )}
                   <div>
-                    <h2 className="text-xl font-bold text-white">Edit Health Profile</h2>
-                    <p className="text-gray-500 text-xs mt-0.5">Your data stays private & encrypted</p>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-white">Edit Health Profile</h2>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">Your data stays private & encrypted</p>
                   </div>
                 </div>
                 <Shield className="w-5 h-5 text-green-400" />
@@ -413,24 +413,24 @@ export default function ProfilePage() {
                       {profile.profileImageUrl ? (
                         <Image src={profile.profileImageUrl} alt="Profile" fill className="object-cover" />
                       ) : (
-                        <User className="w-8 h-8 text-primary-400" />
+                        <User className="w-8 h-8 text-primary-600 dark:text-primary-400" />
                       )}
                     </div>
                     <label className="absolute -bottom-2 -right-2 w-7 h-7 rounded-xl bg-primary-600 flex items-center justify-center cursor-pointer hover:bg-primary-500 transition-colors">
-                      <Camera className="w-3 h-3 text-white" />
+                      <Camera className="w-3 h-3 text-gray-900 dark:text-white" />
                       <input type="file" accept="image/*" className="hidden"
                         onChange={e => { if (e.target.files?.[0]) handlePhotoUpload(e.target.files[0]); }} />
                     </label>
                   </div>
                   <div>
-                    <p className="text-white font-semibold text-sm">Profile Photo</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Optional — helps personalise your experience</p>
+                    <p className="text-gray-900 dark:text-white font-semibold text-sm">Profile Photo</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">Optional — helps personalise your experience</p>
                   </div>
                 </div>
 
                 {/* Personal Information */}
                 <section>
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <User className="w-3.5 h-3.5" /> Personal Information
                   </h3>
                   <div className="grid md:grid-cols-2 gap-4">
@@ -438,9 +438,9 @@ export default function ProfilePage() {
                     <FormField label="Last Name" name="lastName" value={profile.lastName} onChange={handleInput} placeholder="Doe" />
                     <FormField label="Phone Number" name="phoneNumber" value={profile.phoneNumber} onChange={handleInput} placeholder="+1 (555) 000-0000" type="tel" />
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-gray-400">Gender</label>
+                      <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Gender</label>
                       <select name="gender" value={profile.gender} onChange={handleInput}
-                        className="w-full bg-white/5 border border-white/10 text-white px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 text-sm [color-scheme:dark]">
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 text-sm [color-scheme:dark]">
                         <option value="">Select gender</option>
                         <option value="male">Male</option>
                         <option value="female">Female</option>
@@ -450,9 +450,9 @@ export default function ProfilePage() {
                     </div>
                     <FormField label="Date of Birth" name="dateOfBirth" value={profile.dateOfBirth} onChange={handleInput} type="date" />
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold text-gray-400">Blood Type</label>
+                      <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">Blood Type</label>
                       <select name="bloodType" value={profile.bloodType} onChange={handleInput}
-                        className="w-full bg-white/5 border border-white/10 text-white px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 text-sm [color-scheme:dark]">
+                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 text-sm [color-scheme:dark]">
                         <option value="">Select blood type</option>
                         {BLOOD_TYPES.map(bt => <option key={bt} value={bt}>{bt}</option>)}
                       </select>
@@ -462,7 +462,7 @@ export default function ProfilePage() {
 
                 {/* Medical Information */}
                 <section>
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <Heart className="w-3.5 h-3.5 text-red-400" /> Medical Information
                   </h3>
                   <div className="space-y-4">
@@ -501,10 +501,10 @@ export default function ProfilePage() {
 
                 {/* AI Enhancement tip */}
                 <div className="flex items-start gap-3 p-4 rounded-2xl bg-primary-500/8 border border-primary-500/20">
-                  <Brain className="w-4 h-4 text-primary-400 shrink-0 mt-0.5" />
+                  <Brain className="w-4 h-4 text-primary-600 dark:text-primary-400 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-primary-300 text-sm font-semibold">Improve your AI analysis</p>
-                    <p className="text-gray-500 text-xs mt-0.5">Filling in your medications and chronic conditions allows the AI to detect drug-lab interactions and provide much more personalised recommendations when you upload reports.</p>
+                    <p className="text-primary-700 dark:text-primary-300 text-sm font-semibold">Improve your AI analysis</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs mt-0.5">Filling in your medications and chronic conditions allows the AI to detect drug-lab interactions and provide much more personalised recommendations when you upload reports.</p>
                   </div>
                 </div>
 
@@ -533,8 +533,8 @@ function InfoRow({ icon, label, value }: { icon: React.ReactNode; label: string;
     <div className="flex items-start gap-3">
       <div className="mt-0.5 shrink-0">{icon}</div>
       <div>
-        <p className="text-gray-500 text-xs">{label}</p>
-        <p className="text-white text-sm mt-0.5 leading-relaxed">{value}</p>
+        <p className="text-gray-500 dark:text-gray-400 text-xs">{label}</p>
+        <p className="text-gray-900 dark:text-white text-sm mt-0.5 leading-relaxed">{value}</p>
       </div>
     </div>
   );
@@ -544,9 +544,9 @@ function FormField({ label, name, value, onChange, placeholder, type = "text" }:
   { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; placeholder?: string; type?: string }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-semibold text-gray-400">{label}</label>
+      <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">{label}</label>
       <input type={type} name={name} value={value} onChange={onChange} placeholder={placeholder}
-        className="w-full bg-white/5 border border-white/10 text-white placeholder:text-gray-600 px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 focus:bg-white/8 transition-all text-sm [color-scheme:dark]" />
+        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-600 px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 focus:bg-white/8 transition-all text-sm [color-scheme:dark]" />
     </div>
   );
 }
@@ -555,10 +555,10 @@ function TextAreaField({ label, name, value, onChange, placeholder, hint }:
   { label: string; name: string; value: string; onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void; placeholder?: string; hint?: string }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-xs font-semibold text-gray-400">{label}</label>
-      {hint && <p className="text-xs text-gray-600">{hint}</p>}
+      <label className="text-xs font-semibold text-gray-600 dark:text-gray-400">{label}</label>
+      {hint && <p className="text-xs text-gray-600 dark:text-gray-400">{hint}</p>}
       <textarea name={name} value={value} onChange={onChange} placeholder={placeholder} rows={2}
-        className="w-full bg-white/5 border border-white/10 text-white placeholder:text-gray-600 px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 focus:bg-white/8 transition-all text-sm resize-none" />
+        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-600 px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 focus:bg-white/8 transition-all text-sm resize-none" />
     </div>
   );
 }

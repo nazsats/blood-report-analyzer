@@ -23,22 +23,17 @@ export default function Home() {
   const { user, loading } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0414]">
-        <div className="text-center">
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-            className="inline-block"
-          >
-            <div className="w-16 h-16 rounded-full border-2 border-primary-700 border-t-primary-400 animate-spin" />
-          </motion.div>
-          <p className="mt-6 text-gray-400 font-medium">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  // Deliberately no `if (loading) return <spinner />` here.
+  //
+  // Auth is resolved on the client, so `loading` is always true during server
+  // rendering — which meant the entire marketing page server-rendered as the
+  // word "Loading...". That is exactly what a crawler stores. For a product
+  // whose economics only work through organic search, having the homepage be
+  // invisible to search engines is close to fatal.
+  //
+  // None of this content depends on who is looking at it. Only the call to
+  // action does, and it defaults to the signed-out version — which is the right
+  // one for a visitor arriving from search anyway.
 
   const features = [
     {
@@ -54,7 +49,7 @@ export default function Home() {
       title: "Plain English Results",
       desc: "No more confusing medical jargon. Every marker explained simply and clearly.",
       color: "from-primary-500/20 to-secondary-500/20",
-      iconColor: "text-primary-400",
+      iconColor: "text-primary-600 dark:text-primary-400",
       border: "hover:border-primary-500/30",
     },
     {
@@ -70,7 +65,7 @@ export default function Home() {
       title: "Trend Tracking",
       desc: "Monitor your health progress over time with trend charts and historical data.",
       color: "from-accent-500/20 to-secondary-500/20",
-      iconColor: "text-accent-400",
+      iconColor: "text-accent-600 dark:text-accent-400",
       border: "hover:border-accent-500/30",
     },
     {
@@ -78,7 +73,7 @@ export default function Home() {
       title: "Wellness Protocol",
       desc: "Custom workout, supplement, and lifestyle recommendations based on your data.",
       color: "from-secondary-500/20 to-primary-500/20",
-      iconColor: "text-secondary-400",
+      iconColor: "text-secondary-600 dark:text-secondary-400",
       border: "hover:border-secondary-500/30",
     },
     {
@@ -98,7 +93,7 @@ export default function Home() {
   ];
 
   return (
-    <div className="relative min-h-screen bg-[#0a0414] text-white overflow-x-hidden">
+    <div className="relative min-h-screen bg-white dark:bg-[#08110F] text-gray-900 dark:text-white overflow-x-hidden">
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
       {/* Background orbs */}
@@ -112,9 +107,9 @@ export default function Home() {
       {/* ── HERO ──────────────────────────────────────────────── */}
       <section className="relative z-10 pt-36 pb-24 px-4 sm:px-6 text-center max-w-6xl mx-auto">
         <motion.div {...fadeUp} {...stagger(0)}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm font-medium mb-8"
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-700 dark:text-primary-300 text-sm font-medium mb-8"
         >
-          <Zap className="w-3.5 h-3.5 fill-current text-primary-400" />
+          <Zap className="w-3.5 h-3.5 fill-current text-primary-600 dark:text-primary-400" />
           Powered by GPT-4o Vision
         </motion.div>
 
@@ -125,11 +120,11 @@ export default function Home() {
           <br />
           <span className="shimmer-text">Blood Report</span>
           <br />
-          <span className="text-gray-300">with AI</span>
+          <span className="text-gray-700 dark:text-gray-300">with AI</span>
         </motion.h1>
 
         <motion.p {...fadeUp} {...stagger(2)}
-          className="text-lg sm:text-xl text-gray-400 leading-relaxed max-w-2xl mx-auto mb-12"
+          className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 leading-relaxed max-w-2xl mx-auto mb-12"
         >
           Upload your blood test. Get an instant, personalized health protocol — diet plan, supplement stack, and lifestyle tips — in plain English.
         </motion.p>
@@ -161,7 +156,7 @@ export default function Home() {
                 Get Started Free
                 <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
               </motion.button>
-              <Link href="#features" className="inline-flex items-center gap-2 px-6 py-4 text-gray-400 hover:text-white font-semibold transition-colors text-lg">
+              <Link href="#features" className="inline-flex items-center gap-2 px-6 py-4 text-gray-600 dark:text-gray-400 hover:text-white font-semibold transition-colors text-lg">
                 See how it works
                 <ChevronRight className="w-4 h-4" />
               </Link>
@@ -171,7 +166,7 @@ export default function Home() {
 
         {/* Trust indicators */}
         <motion.div {...fadeUp} {...stagger(4)}
-          className="flex flex-wrap justify-center gap-6 mt-16 text-sm text-gray-500"
+          className="flex flex-wrap justify-center gap-6 mt-16 text-sm text-gray-500 dark:text-gray-400"
         >
           {[
             { icon: Users, text: "Free to try, no card required" },
@@ -180,7 +175,7 @@ export default function Home() {
             { icon: Zap, text: "Powered by GPT-4o Vision" },
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-2">
-              <item.icon className="w-4 h-4 text-primary-400" />
+              <item.icon className="w-4 h-4 text-primary-600 dark:text-primary-400" />
               <span>{item.text}</span>
             </div>
           ))}
@@ -196,16 +191,16 @@ export default function Home() {
           className="relative"
         >
           <div className="absolute -inset-px rounded-3xl bg-gradient-to-r from-primary-500/50 to-secondary-500/50 blur-sm opacity-60" />
-          <div className="relative rounded-3xl bg-gray-900/80 border border-white/10 backdrop-blur-xl overflow-hidden shadow-2xl">
+          <div className="relative rounded-3xl bg-gray-900/80 border border-gray-200 dark:border-white/10 backdrop-blur-xl overflow-hidden shadow-2xl">
             {/* Header bar */}
-            <div className="flex items-center gap-2 px-5 py-4 border-b border-white/8 bg-white/3">
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-gray-200 dark:border-white/8 bg-gray-50 dark:bg-white/3">
               <div className="flex gap-1.5">
                 <div className="w-3 h-3 rounded-full bg-red-500/70" />
                 <div className="w-3 h-3 rounded-full bg-yellow-500/70" />
                 <div className="w-3 h-3 rounded-full bg-accent-500/70" />
               </div>
               <div className="flex-1 flex justify-center">
-                <div className="px-3 py-1 rounded-lg bg-white/5 border border-white/8 text-xs text-gray-500 font-mono">
+                <div className="px-3 py-1 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/8 text-xs text-gray-500 dark:text-gray-400 font-mono">
                   bloodlab.in/results/report_xyz
                 </div>
               </div>
@@ -215,9 +210,9 @@ export default function Home() {
             <div className="p-6 sm:p-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
               {/* Score card */}
               <div className="sm:col-span-1 flex flex-col items-center justify-center p-6 rounded-2xl bg-gradient-to-br from-primary-600/20 to-secondary-500/20 border border-primary-500/20">
-                <div className="text-6xl font-black text-white mb-1">8.2</div>
-                <div className="text-sm text-gray-400 font-medium">Overall Health Score</div>
-                <div className="mt-3 px-3 py-1 rounded-full bg-accent-500/20 text-accent-400 text-xs font-bold">⬆ Above Average</div>
+                <div className="text-6xl font-black text-gray-900 dark:text-white mb-1">8.2</div>
+                <div className="text-sm text-gray-600 dark:text-gray-400 font-medium">Overall Health Score</div>
+                <div className="mt-3 px-3 py-1 rounded-full bg-accent-500/20 text-accent-600 dark:text-accent-400 text-xs font-bold">⬆ Above Average</div>
               </div>
 
               {/* Markers */}
@@ -229,8 +224,8 @@ export default function Home() {
                   { name: "Haemoglobin", val: "14.2 g/dL", status: "normal", pct: 70 },
                 ].map((m) => (
                   <div key={m.name} className="flex items-center gap-3">
-                    <div className="w-24 shrink-0 text-xs text-gray-400 font-medium">{m.name}</div>
-                    <div className="flex-1 h-2 rounded-full bg-white/8">
+                    <div className="w-24 shrink-0 text-xs text-gray-600 dark:text-gray-400 font-medium">{m.name}</div>
+                    <div className="flex-1 h-2 rounded-full bg-gray-50 dark:bg-white/8">
                       <div
                         className={`h-full rounded-full ${m.status === "normal" ? "bg-accent-400" :
                             m.status === "low" ? "bg-yellow-400" : "bg-red-400"
@@ -238,8 +233,8 @@ export default function Home() {
                         style={{ width: `${m.pct}%` }}
                       />
                     </div>
-                    <div className="text-xs text-gray-300 w-20 shrink-0 text-right font-mono">{m.val}</div>
-                    <div className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${m.status === "normal" ? "bg-accent-500/20 text-accent-400" :
+                    <div className="text-xs text-gray-700 dark:text-gray-300 w-20 shrink-0 text-right font-mono">{m.val}</div>
+                    <div className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${m.status === "normal" ? "bg-accent-500/20 text-accent-600 dark:text-accent-400" :
                         m.status === "low" ? "bg-yellow-500/20 text-yellow-400" : "bg-red-500/20 text-red-400"
                       }`}>
                       {m.status}
@@ -253,11 +248,11 @@ export default function Home() {
             <div className="px-6 sm:px-8 pb-6">
               <div className="flex items-start gap-3 p-4 rounded-xl bg-primary-500/10 border border-primary-500/20">
                 <div className="w-8 h-8 rounded-full bg-primary-500/20 flex items-center justify-center shrink-0">
-                  <Brain className="w-4 h-4 text-primary-400" />
+                  <Brain className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                 </div>
                 <div>
-                  <div className="text-xs font-bold text-primary-300 uppercase tracking-wider mb-1">AI Recommendation</div>
-                  <p className="text-sm text-gray-300">Your Vitamin D is critically low. Start with 4,000 IU D3 + K2 supplement daily. Get 20 min of sunlight exposure before 10 AM. Retest in 8 weeks.</p>
+                  <div className="text-xs font-bold text-primary-700 dark:text-primary-300 uppercase tracking-wider mb-1">AI Recommendation</div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">Your Vitamin D is critically low. Start with 4,000 IU D3 + K2 supplement daily. Get 20 min of sunlight exposure before 10 AM. Retest in 8 weeks.</p>
                 </div>
               </div>
             </div>
@@ -270,13 +265,13 @@ export default function Home() {
         <div className="text-center mb-16">
           <motion.div
             initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary-500/10 border border-secondary-500/25 text-secondary-300 text-sm font-medium mb-4"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-secondary-500/10 border border-secondary-500/25 text-secondary-700 dark:text-secondary-300 text-sm font-medium mb-4"
           >
             How it works
           </motion.div>
           <motion.h2
             initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-            className="text-4xl sm:text-5xl font-black tracking-tight text-white"
+            className="text-4xl sm:text-5xl font-black tracking-tight text-gray-900 dark:text-white"
           >
             From upload to insights
             <br />
@@ -295,18 +290,18 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.15 }}
-              className="relative flex flex-col items-center text-center p-8 rounded-3xl glass-card border border-white/8 hover:border-primary-500/30 transition-all duration-300 hover:-translate-y-1"
+              className="relative flex flex-col items-center text-center p-8 rounded-3xl glass-card border border-gray-200 dark:border-white/8 hover:border-primary-500/30 transition-all duration-300 hover:-translate-y-1"
             >
               <div className="mb-6 relative">
                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-600/30 to-secondary-500/30 border border-primary-500/30 flex items-center justify-center">
-                  <step.icon className="w-8 h-8 text-primary-300" />
+                  <step.icon className="w-8 h-8 text-primary-700 dark:text-primary-300" />
                 </div>
                 <div className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-gradient-to-br from-primary-600 to-secondary-500 flex items-center justify-center text-xs font-black text-white shadow-lg shadow-primary-500/30">
                   {i + 1}
                 </div>
               </div>
-              <h3 className="text-xl font-bold text-white mb-3">{step.title}</h3>
-              <p className="text-gray-400 leading-relaxed">{step.desc}</p>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{step.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400 leading-relaxed">{step.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -317,13 +312,13 @@ export default function Home() {
         <div className="text-center mb-16">
           <motion.div
             initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent-500/10 border border-accent-500/25 text-accent-300 text-sm font-medium mb-4"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-accent-500/10 border border-accent-500/25 text-accent-600 dark:text-accent-300 text-sm font-medium mb-4"
           >
             Everything you need
           </motion.div>
           <motion.h2
             initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.1 }}
-            className="text-4xl sm:text-5xl font-black tracking-tight text-white"
+            className="text-4xl sm:text-5xl font-black tracking-tight text-gray-900 dark:text-white"
           >
             Your complete
             <br />
@@ -339,13 +334,13 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
-              className={`group relative p-6 rounded-2xl border border-white/8 bg-white/3 hover:bg-white/7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${feat.border}`}
+              className={`group relative p-6 rounded-2xl border border-gray-200 dark:border-white/8 bg-gray-50 dark:bg-white/3 hover:bg-white/7 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl ${feat.border}`}
             >
               <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${feat.color} flex items-center justify-center mb-5`}>
                 <feat.icon className={`w-6 h-6 ${feat.iconColor}`} />
               </div>
-              <h3 className="text-lg font-bold text-white mb-2 group-hover:text-primary-300 transition-colors">{feat.title}</h3>
-              <p className="text-gray-400 text-sm leading-relaxed">{feat.desc}</p>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 group-hover:text-primary-300 transition-colors">{feat.title}</h3>
+              <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed">{feat.desc}</p>
             </motion.div>
           ))}
         </div>
@@ -369,11 +364,11 @@ export default function Home() {
           <div className="absolute -top-1/2 -left-1/4 w-full h-full rounded-full bg-primary-400/10 blur-3xl" />
 
           <div className="relative z-10">
-            <Lock className="w-12 h-12 text-white/60 mx-auto mb-6" />
-            <h2 className="text-4xl sm:text-5xl font-black text-white mb-4 tracking-tight">
+            <Lock className="w-12 h-12 text-primary-600/70 dark:text-white/60 mx-auto mb-6" />
+            <h2 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-4 tracking-tight">
               Your health data, decoded.
             </h2>
-            <p className="text-primary-200 text-lg mb-10 max-w-xl mx-auto">
+            <p className="text-primary-700 dark:text-primary-200 text-lg mb-10 max-w-xl mx-auto">
               Understand your blood work and take control of your health.
             </p>
             <motion.button
@@ -386,24 +381,24 @@ export default function Home() {
               Analyze Your First Report Free
               <ArrowRight className="w-5 h-5" />
             </motion.button>
-            <p className="mt-5 text-primary-300 text-sm">No credit card required · Cancel anytime</p>
+            <p className="mt-5 text-primary-700 dark:text-primary-300 text-sm">No credit card required · Cancel anytime</p>
           </div>
         </motion.div>
       </section>
 
       {/* Footer */}
-      <footer className="relative z-10 border-t border-white/8 py-12 px-4 sm:px-6">
+      <footer className="relative z-10 border-t border-gray-200 dark:border-white/8 py-12 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-secondary-400 flex items-center justify-center">
-              <Activity className="w-4 h-4 text-white" />
+              <Activity className="w-4 h-4 text-gray-900 dark:text-white" />
             </div>
-            <span className="font-bold text-white">Blood<span className="text-primary-400">AI</span></span>
+            <span className="font-bold text-gray-900 dark:text-white">Blood<span className="text-primary-600 dark:text-primary-400">AI</span></span>
           </div>
-          <p className="text-gray-500 text-sm text-center">
+          <p className="text-gray-500 dark:text-gray-400 text-sm text-center">
             © 2025 Blood Lab. For informational purposes only — not medical advice.
           </p>
-          <div className="flex gap-6 text-sm text-gray-500">
+          <div className="flex gap-6 text-sm text-gray-500 dark:text-gray-400">
             <a href="#" className="hover:text-white transition-colors">Privacy</a>
             <a href="#" className="hover:text-white transition-colors">Terms</a>
             <a href="#" className="hover:text-white transition-colors">Contact</a>

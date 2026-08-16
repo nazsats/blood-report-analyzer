@@ -190,7 +190,7 @@ export default function SharePage() {
   /* ── Loading ── */
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0a0414] flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-white dark:bg-[#08110F] flex flex-col items-center justify-center gap-4">
         <div className="relative">
           <div className="w-16 h-16 rounded-full border-2 border-violet-500/20 border-t-violet-500 animate-spin" />
           <Heart className="absolute inset-0 m-auto h-6 w-6 text-violet-400" />
@@ -203,15 +203,15 @@ export default function SharePage() {
   /* ── Error ── */
   if (error || !report) {
     return (
-      <div className="min-h-screen bg-[#0a0414] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-white dark:bg-[#08110F] flex items-center justify-center px-4">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center max-w-md bg-white/5 backdrop-blur border border-white/10 p-10 rounded-3xl"
+          className="text-center max-w-md bg-gray-50 dark:bg-white/5 backdrop-blur border border-gray-200 dark:border-white/10 p-10 rounded-3xl"
         >
           <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-white mb-3">Report Not Found</h2>
-          <p className="text-gray-400">{error ?? "This shared report is not available."}</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Report Not Found</h2>
+          <p className="text-gray-600 dark:text-gray-400">{error ?? "This shared report is not available."}</p>
         </motion.div>
       </div>
     );
@@ -238,7 +238,7 @@ export default function SharePage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#0a0414] text-white">
+    <div className="min-h-screen bg-white dark:bg-[#08110F] text-gray-900 dark:text-white">
       {/* Ambient glow */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute -top-40 -left-40 w-96 h-96 bg-violet-600/15 rounded-full blur-3xl" />
@@ -269,7 +269,7 @@ export default function SharePage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 mb-6 overflow-hidden relative"
+          className="bg-gray-50 dark:bg-white/5 backdrop-blur-xl border border-gray-200 dark:border-white/10 rounded-3xl p-8 mb-6 overflow-hidden relative"
         >
           <div className="absolute top-0 right-0 w-72 h-72 bg-violet-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
 
@@ -286,8 +286,8 @@ export default function SharePage() {
                   </span>
                 )}
               </div>
-              <h1 className="text-2xl md:text-3xl font-bold text-white mb-2">Health Analysis Report</h1>
-              <p className="text-gray-400 text-sm flex items-center gap-1.5">
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white mb-2">Health Analysis Report</h1>
+              <p className="text-gray-600 dark:text-gray-400 text-sm flex items-center gap-1.5">
                 <Activity className="h-3.5 w-3.5 text-violet-400" />
                 AI-Powered Blood Report Insights
               </p>
@@ -299,7 +299,7 @@ export default function SharePage() {
                 <motion.button
                   whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                   onClick={handleSpeak}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:border-violet-500/40 hover:text-violet-300 transition-all text-sm"
+                  className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-700 dark:text-gray-300 hover:border-violet-500/40 hover:text-violet-300 transition-all text-sm"
                 >
                   {isSpeaking ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                   {isSpeaking ? "Stop" : "Listen"}
@@ -308,7 +308,7 @@ export default function SharePage() {
               <motion.button
                 whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                 onClick={handleCopyLink}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-gray-300 hover:border-cyan-500/40 hover:text-cyan-300 transition-all text-sm"
+                className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-gray-700 dark:text-gray-300 hover:border-cyan-500/40 hover:text-cyan-300 transition-all text-sm"
               >
                 <Share2 className="h-4 w-4" />
                 {copied ? "Copied!" : "Share"}
@@ -318,29 +318,29 @@ export default function SharePage() {
 
           {/* Score row */}
           {overallScore && (
-            <div className="relative z-10 mt-6 flex flex-wrap items-center gap-6 pt-6 border-t border-white/8">
+            <div className="relative z-10 mt-6 flex flex-wrap items-center gap-6 pt-6 border-t border-gray-200 dark:border-white/8">
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Health Score</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5">Health Score</p>
                 <div className="flex items-baseline gap-1">
                   <span className={`text-4xl font-black ${scoreColor(overallScore)}`}>{overallScore.toFixed(1)}</span>
-                  <span className="text-gray-500 text-lg">/10</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-lg">/10</span>
                 </div>
               </div>
-              <div className="h-10 w-px bg-white/10" />
+              <div className="h-10 w-px bg-gray-50 dark:bg-white/10" />
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Tests Analyzed</p>
-                <span className="text-2xl font-bold text-white">{tests.length}</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5">Tests Analyzed</p>
+                <span className="text-2xl font-bold text-gray-900 dark:text-white">{tests.length}</span>
               </div>
-              <div className="h-10 w-px bg-white/10" />
+              <div className="h-10 w-px bg-gray-50 dark:bg-white/10" />
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Needs Attention</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5">Needs Attention</p>
                 <span className="text-2xl font-bold text-amber-400">{abnormal.length}</span>
               </div>
               {predictions.length > 0 && (
                 <>
-                  <div className="h-10 w-px bg-white/10" />
+                  <div className="h-10 w-px bg-gray-50 dark:bg-white/10" />
                   <div>
-                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-0.5">Risk Factors</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-0.5">Risk Factors</p>
                     <span className="text-2xl font-bold text-violet-400">{predictions.length}</span>
                   </div>
                 </>
@@ -361,8 +361,8 @@ export default function SharePage() {
               onClick={() => setActiveSection(id)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 activeSection === id
-                  ? "bg-violet-600 text-white shadow-lg shadow-violet-500/25"
-                  : "bg-white/5 text-gray-400 border border-white/8 hover:border-violet-500/30 hover:text-violet-300"
+                  ? "bg-violet-600 text-gray-900 dark:text-white shadow-lg shadow-violet-500/25"
+                  : "bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-white/8 hover:border-violet-500/30 hover:text-violet-300"
               }`}
             >
               <span>{emoji}</span>
@@ -381,14 +381,14 @@ export default function SharePage() {
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               className="space-y-5"
             >
-              <div className="bg-white/5 backdrop-blur border border-white/10 rounded-3xl p-8">
+              <div className="bg-gray-50 dark:bg-white/5 backdrop-blur border border-gray-200 dark:border-white/10 rounded-3xl p-8">
                 <h2 className="text-xl font-bold mb-5 flex items-center gap-3">
                   <div className="p-2 bg-violet-500/15 rounded-xl border border-violet-500/20">
                     <Info className="h-5 w-5 text-violet-400" />
                   </div>
                   Executive Summary
                 </h2>
-                <div className="prose prose-invert max-w-none text-gray-300 leading-relaxed">
+                <div className="prose prose-invert max-w-none text-gray-700 dark:text-gray-300 leading-relaxed">
                   <ReactMarkdown>{summary}</ReactMarkdown>
                 </div>
               </div>
@@ -398,18 +398,18 @@ export default function SharePage() {
                   <h3 className="text-lg font-bold text-amber-300 mb-3 flex items-center gap-2">
                     <Target className="h-5 w-5" /> Key Recommendation
                   </h3>
-                  <p className="text-gray-200 leading-relaxed">{recommendation}</p>
+                  <p className="text-gray-800 dark:text-gray-200 leading-relaxed">{recommendation}</p>
                 </div>
               )}
 
               {healthGoals.length > 0 && (
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-7">
+                <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-7">
                   <h3 className="text-lg font-bold text-cyan-300 mb-4 flex items-center gap-2">
                     <Zap className="h-5 w-5" /> Health Goals
                   </h3>
                   <ul className="space-y-3">
                     {healthGoals.map((goal, i) => (
-                      <li key={i} className="flex items-start gap-3 text-gray-300 text-sm">
+                      <li key={i} className="flex items-start gap-3 text-gray-700 dark:text-gray-300 text-sm">
                         <CheckCircle2 className="h-4 w-4 text-cyan-400 mt-0.5 flex-shrink-0" />
                         {goal}
                       </li>
@@ -419,7 +419,7 @@ export default function SharePage() {
               )}
 
               {supplements.length > 0 && (
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-7">
+                <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-3xl p-7">
                   <h3 className="text-lg font-bold text-violet-300 mb-4 flex items-center gap-2">
                     <Pill className="h-5 w-5" /> Supplements Recommended
                   </h3>
@@ -428,7 +428,7 @@ export default function SharePage() {
                       <div key={i} className="bg-violet-500/8 border border-violet-500/15 rounded-2xl p-4">
                         <p className="font-semibold text-violet-300 text-sm mb-1">{s.name}</p>
                         {s.dose && <p className="text-xs text-cyan-400 mb-1">Dose: {s.dose}</p>}
-                        <p className="text-xs text-gray-400 leading-relaxed">{s.reason}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{s.reason}</p>
                         {s.duration && <p className="text-xs text-amber-400 mt-1">Duration: {s.duration}</p>}
                       </div>
                     ))}
@@ -454,25 +454,25 @@ export default function SharePage() {
                       key={i}
                       initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.04 }}
-                      className="bg-white/5 border border-white/10 rounded-2xl p-5 hover:border-violet-500/30 transition-all"
+                      className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-5 hover:border-violet-500/30 transition-all"
                     >
                       <div className="flex items-start justify-between mb-3">
-                        <h3 className="text-sm font-semibold text-white pr-2 leading-snug">{test.test}</h3>
+                        <h3 className="text-sm font-semibold text-gray-900 dark:text-white pr-2 leading-snug">{test.test}</h3>
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${fc.bg} ${fc.border} border ${fc.text} uppercase`}>
                           {test.flag}
                         </span>
                       </div>
 
                       <div className="flex items-baseline gap-1.5 mb-2">
-                        <span className="text-3xl font-black text-white">{test.value}</span>
-                        <span className="text-xs text-gray-500">{test.unit}</span>
+                        <span className="text-3xl font-black text-gray-900 dark:text-white">{test.value}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400">{test.unit}</span>
                       </div>
 
-                      <p className="text-xs text-gray-500 mb-3">Range: <span className="text-gray-300">{test.range}</span></p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Range: <span className="text-gray-700 dark:text-gray-300">{test.range}</span></p>
 
                       {pct !== null && (
                         <div className="mb-3">
-                          <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
+                          <div className="h-1.5 bg-gray-50 dark:bg-white/8 rounded-full overflow-hidden">
                             <div
                               className="h-full rounded-full transition-all"
                               style={{ width: `${pct}%`, backgroundColor: fc.bar }}
@@ -482,20 +482,20 @@ export default function SharePage() {
                       )}
 
                       {test.explanation && (
-                        <p className="text-xs text-gray-400 leading-relaxed mb-2">{test.explanation}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed mb-2">{test.explanation}</p>
                       )}
 
                       {test.rootCauses && (
                         <div className="bg-purple-500/8 border border-purple-500/15 rounded-xl p-3 mt-2">
                           <p className="text-xs font-medium text-purple-300 mb-1">Likely Causes</p>
-                          <p className="text-xs text-gray-400 leading-relaxed">{test.rootCauses}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{test.rootCauses}</p>
                         </div>
                       )}
 
                       {test.advice && (
                         <div className="bg-cyan-500/8 border border-cyan-500/15 rounded-xl p-3 mt-2">
                           <p className="text-xs font-medium text-cyan-300 mb-1">Action Plan</p>
-                          <p className="text-xs text-gray-400 leading-relaxed">{test.advice}</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{test.advice}</p>
                         </div>
                       )}
                     </motion.div>
@@ -513,7 +513,7 @@ export default function SharePage() {
               className="space-y-4"
             >
               {predictions.length === 0 ? (
-                <div className="text-center py-20 text-gray-500">
+                <div className="text-center py-20 text-gray-500 dark:text-gray-400">
                   <Brain className="h-12 w-12 mx-auto mb-4 opacity-30" />
                   <p>No prediction data in this report.</p>
                 </div>
@@ -524,39 +524,39 @@ export default function SharePage() {
                     key={i}
                     initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: i * 0.07 }}
-                    className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:border-violet-500/25 transition-all"
+                    className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-6 hover:border-violet-500/25 transition-all"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
                       <div className="flex items-center gap-2">
                         <div className="p-2 bg-violet-500/15 rounded-xl border border-violet-500/20">
                           <Brain className="h-4 w-4 text-violet-400" />
                         </div>
-                        <h3 className="text-base font-bold text-white">{p.condition}</h3>
+                        <h3 className="text-base font-bold text-gray-900 dark:text-white">{p.condition}</h3>
                       </div>
                       <div className="flex items-center gap-2">
                         <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${rc.bg} ${rc.border} ${rc.text}`}>
                           {rc.label}
                         </span>
-                        <span className="flex items-center gap-1 text-xs text-gray-500">
+                        <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                           <Clock className="h-3 w-3" />{p.timeframe}
                         </span>
                       </div>
                     </div>
 
                     <div className="space-y-3">
-                      <div className="bg-white/4 rounded-xl p-4">
+                      <div className="bg-gray-50 dark:bg-white/4 rounded-xl p-4">
                         <div className="flex items-center gap-1.5 mb-1.5">
                           <FlaskConical className="h-3.5 w-3.5 text-amber-400" />
                           <span className="text-xs font-semibold text-amber-300">Why this risk?</span>
                         </div>
-                        <p className="text-sm text-gray-300 leading-relaxed">{p.reason}</p>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{p.reason}</p>
                       </div>
                       <div className="bg-green-500/8 border border-green-500/15 rounded-xl p-4">
                         <div className="flex items-center gap-1.5 mb-1.5">
                           <ShieldAlert className="h-3.5 w-3.5 text-green-400" />
                           <span className="text-xs font-semibold text-green-300">Prevention</span>
                         </div>
-                        <p className="text-sm text-gray-300 leading-relaxed">{p.prevention}</p>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{p.prevention}</p>
                       </div>
                     </div>
                   </motion.div>
@@ -573,7 +573,7 @@ export default function SharePage() {
               className="space-y-5"
             >
               {medAlerts.length === 0 ? (
-                <div className="text-center py-20 text-gray-500">
+                <div className="text-center py-20 text-gray-500 dark:text-gray-400">
                   <Syringe className="h-12 w-12 mx-auto mb-4 opacity-30" />
                   <p>No medication interactions flagged for this report.</p>
                 </div>
@@ -593,20 +593,20 @@ export default function SharePage() {
                           </div>
                           <div>
                             <h3 className="font-bold text-red-300">{alert.medication}</h3>
-                            <p className="text-xs text-gray-500">Affects: {alert.marker}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Affects: {alert.marker}</p>
                           </div>
                         </div>
-                        <p className="text-sm text-gray-300 leading-relaxed mb-3">{alert.interaction}</p>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">{alert.interaction}</p>
                         <div className="bg-amber-500/8 border border-amber-500/20 rounded-xl p-3">
                           <p className="text-xs font-semibold text-amber-300 mb-1">Recommendation</p>
-                          <p className="text-xs text-gray-300">{alert.suggestion}</p>
+                          <p className="text-xs text-gray-700 dark:text-gray-300">{alert.suggestion}</p>
                         </div>
                       </motion.div>
                     ))}
                   </div>
 
                   {supplements.length > 0 && (
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                    <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-6">
                       <h3 className="text-base font-bold text-violet-300 mb-4 flex items-center gap-2">
                         <Pill className="h-4 w-4" /> Supplement Recommendations
                       </h3>
@@ -615,7 +615,7 @@ export default function SharePage() {
                           <div key={i} className="bg-violet-500/8 border border-violet-500/15 rounded-xl p-4">
                             <p className="font-semibold text-violet-300 text-sm mb-1">{s.name}</p>
                             {s.dose && <p className="text-xs text-cyan-400 mb-1">Dose: {s.dose}</p>}
-                            <p className="text-xs text-gray-400 leading-relaxed">{s.reason}</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">{s.reason}</p>
                             {s.duration && <p className="text-xs text-amber-400 mt-1">Duration: {s.duration}</p>}
                           </div>
                         ))}
@@ -634,8 +634,8 @@ export default function SharePage() {
               initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               className="grid md:grid-cols-2 gap-5"
             >
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 h-80 flex flex-col">
-                <h3 className="text-sm font-semibold text-gray-300 mb-4 text-center">Test Result Distribution</h3>
+              <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-6 h-80 flex flex-col">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 text-center">Test Result Distribution</h3>
                 <div className="flex-1">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
@@ -651,8 +651,8 @@ export default function SharePage() {
                 </div>
               </div>
 
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-6 h-80 flex flex-col">
-                <h3 className="text-sm font-semibold text-gray-300 mb-4 text-center">Abnormal Markers Radar</h3>
+              <div className="bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl p-6 h-80 flex flex-col">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4 text-center">Abnormal Markers Radar</h3>
                 {radarData.length > 0 ? (
                   <div className="flex-1">
                     <ResponsiveContainer width="100%" height="100%">
@@ -683,9 +683,9 @@ export default function SharePage() {
             >
               {report.nutrition ? (
                 <>
-                  <div className="bg-white/5 border border-l-4 border-l-green-500 border-white/10 rounded-2xl p-6">
-                    <h3 className="font-bold text-white mb-1">Nutrition Focus</h3>
-                    <p className="text-gray-300 text-sm">{report.nutrition.focus}</p>
+                  <div className="bg-gray-50 dark:bg-white/5 border border-l-4 border-l-green-500 border-gray-200 dark:border-white/10 rounded-2xl p-6">
+                    <h3 className="font-bold text-gray-900 dark:text-white mb-1">Nutrition Focus</h3>
+                    <p className="text-gray-700 dark:text-gray-300 text-sm">{report.nutrition.focus}</p>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     {([
@@ -700,7 +700,7 @@ export default function SharePage() {
                         </h4>
                         <ul className="space-y-1.5">
                           {(report.nutrition![key] as string[]).map((item, i) => (
-                            <li key={i} className="text-gray-300 text-xs leading-relaxed">• {item}</li>
+                            <li key={i} className="text-gray-700 dark:text-gray-300 text-xs leading-relaxed">• {item}</li>
                           ))}
                         </ul>
                       </div>
@@ -713,14 +713,14 @@ export default function SharePage() {
                       </h4>
                       <ul className="space-y-1.5">
                         {report.nutrition.avoid.map((item, i) => (
-                          <li key={i} className="text-gray-300 text-xs leading-relaxed">• {item}</li>
+                          <li key={i} className="text-gray-700 dark:text-gray-300 text-xs leading-relaxed">• {item}</li>
                         ))}
                       </ul>
                     </div>
                   )}
                 </>
               ) : (
-                <div className="text-center py-20 text-gray-500">
+                <div className="text-center py-20 text-gray-500 dark:text-gray-400">
                   <Utensils className="h-12 w-12 mx-auto mb-4 opacity-30" />
                   <p>Nutrition details not available.</p>
                 </div>
@@ -746,12 +746,12 @@ export default function SharePage() {
                       <h3 className={`font-bold ${color} mb-3 flex items-center gap-2`}>
                         <Icon className="h-5 w-5" />{label}
                       </h3>
-                      <p className="text-gray-300 text-sm leading-relaxed">{value}</p>
+                      <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed">{value}</p>
                     </div>
                   ))}
                 </>
               ) : (
-                <div className="text-center py-20 text-gray-500">
+                <div className="text-center py-20 text-gray-500 dark:text-gray-400">
                   <Activity className="h-12 w-12 mx-auto mb-4 opacity-30" />
                   <p>Lifestyle details not available.</p>
                 </div>
@@ -773,18 +773,18 @@ export default function SharePage() {
               <Sparkles className="h-7 w-7 text-violet-400" />
             </div>
           </div>
-          <h3 className="text-xl font-bold text-white mb-2">Analyze Your Own Blood Report</h3>
-          <p className="text-gray-400 text-sm mb-6 max-w-sm mx-auto">
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Analyze Your Own Blood Report</h3>
+          <p className="text-gray-600 dark:text-gray-400 text-sm mb-6 max-w-sm mx-auto">
             Upload your blood report and get a comprehensive AI-powered health analysis in seconds.
           </p>
           <a
             href="/"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl transition-colors shadow-lg shadow-violet-500/25"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-500 text-gray-900 dark:text-white font-semibold rounded-xl transition-colors shadow-lg shadow-violet-500/25"
           >
             <Heart className="h-4 w-4" />
             Get Your Free Analysis
           </a>
-          <p className="text-xs text-gray-600 mt-4 flex items-center justify-center gap-1.5">
+          <p className="text-xs text-gray-600 dark:text-gray-400 mt-4 flex items-center justify-center gap-1.5">
             <Shield className="h-3 w-3" />
             Your data is encrypted and private
           </p>

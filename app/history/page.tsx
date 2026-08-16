@@ -26,7 +26,7 @@ const RISK_CONFIG: Record<string, { label: string; text: string; bg: string; bor
 
 function scoreColor(s: number) {
   if (s >= 8) return "text-green-400";
-  if (s >= 6) return "text-secondary-400";
+  if (s >= 6) return "text-secondary-600 dark:text-secondary-400";
   if (s >= 4) return "text-amber-400";
   return "text-red-400";
 }
@@ -99,10 +99,10 @@ export default function HistoryPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0414]">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#08110F]">
         <div className="text-center">
           <Loader2 className="h-10 w-10 animate-spin text-primary-500 mx-auto mb-4" />
-          <p className="text-gray-500 font-medium">Loading your health history...</p>
+          <p className="text-gray-500 dark:text-gray-400 font-medium">Loading your health history...</p>
         </div>
       </div>
     );
@@ -122,7 +122,7 @@ export default function HistoryPage() {
   const trend = scores.length >= 2 ? +(scores[0] - scores[1]).toFixed(1) : null;
 
   return (
-    <div className="min-h-screen bg-[#0a0414] relative overflow-hidden">
+    <div className="min-h-screen bg-white dark:bg-[#08110F] relative overflow-hidden">
       {/* Ambient Background */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-primary-600/10 rounded-full blur-[120px]" />
@@ -138,7 +138,7 @@ export default function HistoryPage() {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-300 text-xs font-semibold uppercase tracking-widest mb-4"
+              className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-700 dark:text-primary-300 text-xs font-semibold uppercase tracking-widest mb-4"
             >
               <Sparkles className="w-3 h-3" /> Personal Archive
             </motion.div>
@@ -146,7 +146,7 @@ export default function HistoryPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-4xl sm:text-5xl font-black text-white mb-4"
+              className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-4"
             >
               Your Health{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-secondary-400">
@@ -157,7 +157,7 @@ export default function HistoryPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="text-lg text-gray-400"
+              className="text-lg text-gray-600 dark:text-gray-400"
             >
               Track your physiological journey, monitor trends, and access past reports instantly.
             </motion.p>
@@ -171,13 +171,13 @@ export default function HistoryPage() {
             className="flex items-center gap-3"
           >
             <div className="relative group min-w-[280px]">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-focus-within:text-primary-400 transition-colors" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 dark:text-gray-400 group-focus-within:text-primary-400 transition-colors" />
               <input
                 type="text"
                 placeholder="Search reports..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-2xl focus:outline-none focus:border-primary-500/50 focus:bg-white/10 transition-all text-white placeholder:text-gray-500 text-sm"
+                className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-2xl focus:outline-none focus:border-primary-500/50 focus:bg-white/10 transition-all text-gray-900 dark:text-white placeholder:text-gray-500 text-sm"
               />
             </div>
           </motion.div>
@@ -196,7 +196,7 @@ export default function HistoryPage() {
                 label: "Total Reports",
                 value: reports.length,
                 icon: FileText,
-                color: "text-primary-400",
+                color: "text-primary-600 dark:text-primary-400",
                 bg: "bg-primary-500/10",
                 border: "border-primary-500/20",
               },
@@ -204,17 +204,17 @@ export default function HistoryPage() {
                 label: "Latest Score",
                 value: latestScore ? `${latestScore}/10` : "—",
                 icon: Activity,
-                color: latestScore ? scoreColor(latestScore) : "text-gray-400",
-                bg: latestScore ? scoreBg(latestScore).split(" ")[0] : "bg-white/5",
-                border: latestScore ? scoreBg(latestScore).split(" ")[1] : "border-white/10",
+                color: latestScore ? scoreColor(latestScore) : "text-gray-600 dark:text-gray-400",
+                bg: latestScore ? scoreBg(latestScore).split(" ")[0] : "bg-gray-50 dark:bg-white/5",
+                border: latestScore ? scoreBg(latestScore).split(" ")[1] : "border-gray-200 dark:border-white/10",
               },
               {
                 label: "Average Score",
                 value: avgScore ? `${avgScore}/10` : "—",
                 icon: BarChart3,
-                color: avgScore ? scoreColor(avgScore) : "text-gray-400",
-                bg: avgScore ? scoreBg(avgScore).split(" ")[0] : "bg-white/5",
-                border: avgScore ? scoreBg(avgScore).split(" ")[1] : "border-white/10",
+                color: avgScore ? scoreColor(avgScore) : "text-gray-600 dark:text-gray-400",
+                bg: avgScore ? scoreBg(avgScore).split(" ")[0] : "bg-gray-50 dark:bg-white/5",
+                border: avgScore ? scoreBg(avgScore).split(" ")[1] : "border-gray-200 dark:border-white/10",
               },
               {
                 label: trend !== null
@@ -225,13 +225,13 @@ export default function HistoryPage() {
                   : (bestScore ? `${bestScore}/10` : "—"),
                 icon: trend !== null ? (trend >= 0 ? TrendingUp : TrendingDown) : Sparkles,
                 color: trend !== null
-                  ? (trend > 0 ? "text-green-400" : trend < 0 ? "text-red-400" : "text-gray-400")
+                  ? (trend > 0 ? "text-green-400" : trend < 0 ? "text-red-400" : "text-gray-600 dark:text-gray-400")
                   : "text-amber-400",
                 bg: trend !== null
-                  ? (trend > 0 ? "bg-green-500/10" : trend < 0 ? "bg-red-500/10" : "bg-white/5")
+                  ? (trend > 0 ? "bg-green-500/10" : trend < 0 ? "bg-red-500/10" : "bg-gray-50 dark:bg-white/5")
                   : "bg-amber-500/10",
                 border: trend !== null
-                  ? (trend > 0 ? "border-green-500/20" : trend < 0 ? "border-red-500/20" : "border-white/10")
+                  ? (trend > 0 ? "border-green-500/20" : trend < 0 ? "border-red-500/20" : "border-gray-200 dark:border-white/10")
                   : "border-amber-500/20",
               },
             ].map(({ label, value, icon: Icon, color, bg, border }) => (
@@ -240,7 +240,7 @@ export default function HistoryPage() {
                   <Icon className={`w-4 h-4 ${color}`} />
                 </div>
                 <p className={`text-2xl font-black ${color}`}>{value}</p>
-                <p className="text-gray-500 text-xs mt-1">{label}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">{label}</p>
               </div>
             ))}
           </motion.div>
@@ -251,13 +251,13 @@ export default function HistoryPage() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center py-24 glass-card border border-white/10 rounded-[3rem]"
+            className="text-center py-24 glass-card border border-gray-200 dark:border-white/10 rounded-[3rem]"
           >
             <div className="w-24 h-24 bg-primary-500/10 rounded-full flex items-center justify-center mx-auto mb-8 border border-primary-500/20">
-              <FileText className="h-10 w-10 text-primary-400" />
+              <FileText className="h-10 w-10 text-primary-600 dark:text-primary-400" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-3">No reports found</h3>
-            <p className="text-gray-400 mb-10 max-w-sm mx-auto leading-relaxed">
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">No reports found</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-10 max-w-sm mx-auto leading-relaxed">
               {searchQuery
                 ? "No reports match your search. Try a different filename."
                 : "You haven't uploaded any blood reports yet. Your health journey starts here."}
@@ -292,7 +292,7 @@ export default function HistoryPage() {
                     exit={{ opacity: 0, scale: 0.95 }}
                     transition={{ delay: i * 0.05 }}
                     onClick={() => router.push(`/results/${report.id}`)}
-                    className="group relative glass-card p-6 cursor-pointer border border-white/10 hover:border-primary-500/30 shadow-sm hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-500 rounded-[2rem] flex flex-col justify-between overflow-hidden"
+                    className="group relative glass-card p-6 cursor-pointer border border-gray-200 dark:border-white/10 hover:border-primary-500/30 shadow-sm hover:shadow-2xl hover:shadow-primary-500/10 transition-all duration-500 rounded-[2rem] flex flex-col justify-between overflow-hidden"
                   >
                     {/* Decorative corner accent */}
                     <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-bl-[4rem] group-hover:bg-primary-500/10 transition-colors" />
@@ -300,12 +300,12 @@ export default function HistoryPage() {
                     <div className="relative">
                       {/* File icon + delete */}
                       <div className="flex items-center justify-between mb-5">
-                        <div className="w-12 h-12 rounded-2xl bg-primary-500/10 flex items-center justify-center text-primary-400 border border-primary-500/20 group-hover:scale-110 group-hover:bg-primary-500/20 transition-all duration-300">
+                        <div className="w-12 h-12 rounded-2xl bg-primary-500/10 flex items-center justify-center text-primary-600 dark:text-primary-400 border border-primary-500/20 group-hover:scale-110 group-hover:bg-primary-500/20 transition-all duration-300">
                           <FileText className="h-6 w-6" />
                         </div>
                         <button
                           onClick={(e) => handleDelete(e, report.id)}
-                          className="p-2.5 rounded-xl bg-white/5 hover:bg-red-500/20 text-gray-500 hover:text-red-400 transition-all"
+                          className="p-2.5 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-red-500/20 text-gray-500 dark:text-gray-400 hover:text-red-400 transition-all"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -313,15 +313,15 @@ export default function HistoryPage() {
 
                       {/* File name */}
                       <h3
-                        className="text-lg font-bold text-white mb-2 truncate group-hover:text-primary-300 transition-colors"
+                        className="text-lg font-bold text-gray-900 dark:text-white mb-2 truncate group-hover:text-primary-300 transition-colors"
                         title={report.fileName}
                       >
                         {report.fileName}
                       </h3>
 
                       {/* Date + time */}
-                      <div className="flex items-center gap-3 text-sm text-gray-500 mb-5">
-                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/5 border border-white/10">
+                      <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400 mb-5">
+                        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10">
                           <Calendar className="h-3.5 w-3.5" />
                           {report.createdAt?.toDate?.()
                             ? format(new Date(report.createdAt.toDate()), "MMM dd, yyyy")
@@ -341,7 +341,7 @@ export default function HistoryPage() {
                           {sc != null && (
                             <div className={`flex items-center gap-2 px-3 py-2 rounded-xl border ${scoreBg(sc)} flex-1`}>
                               <TrendingUp className={`h-3.5 w-3.5 ${scoreColor(sc)}`} />
-                              <span className="text-xs text-gray-400">Score</span>
+                              <span className="text-xs text-gray-600 dark:text-gray-400">Score</span>
                               <span className={`text-sm font-black ml-auto ${scoreColor(sc)}`}>{sc}/10</span>
                             </div>
                           )}
@@ -356,9 +356,9 @@ export default function HistoryPage() {
 
                       {/* Test breakdown */}
                       {total != null && (
-                        <div className="flex items-center gap-4 mb-4 text-xs text-gray-500">
+                        <div className="flex items-center gap-4 mb-4 text-xs text-gray-500 dark:text-gray-400">
                           <div className="flex items-center gap-1.5">
-                            <Activity className="h-3 w-3 text-gray-600" />
+                            <Activity className="h-3 w-3 text-gray-600 dark:text-gray-400" />
                             <span>{total} tests</span>
                           </div>
                           {abnormal != null && abnormal > 0 && (
@@ -394,12 +394,12 @@ export default function HistoryPage() {
                     </div>
 
                     {/* Footer */}
-                    <div className="flex items-center justify-between pt-4 border-t border-white/6">
-                      <div className="flex items-center gap-2 text-[10px] sm:text-xs text-gray-600 font-bold uppercase tracking-wider">
+                    <div className="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-white/6">
+                      <div className="flex items-center gap-2 text-[10px] sm:text-xs text-gray-600 dark:text-gray-400 font-bold uppercase tracking-wider">
                         <ShieldCheck className="h-3.5 w-3.5 text-accent-500/60" />
                         <span>Private & Secured</span>
                       </div>
-                      <div className="flex items-center gap-1 text-primary-400 text-xs font-bold group-hover:translate-x-1 transition-transform">
+                      <div className="flex items-center gap-1 text-primary-600 dark:text-primary-400 text-xs font-bold group-hover:translate-x-1 transition-transform">
                         View Details <ArrowUpRight className="h-3.5 w-3.5" />
                       </div>
                     </div>
@@ -416,7 +416,7 @@ export default function HistoryPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="flex items-center gap-2 justify-center mt-10 text-gray-600 text-xs"
+            className="flex items-center gap-2 justify-center mt-10 text-gray-600 dark:text-gray-400 text-xs"
           >
             <Shield className="w-3.5 h-3.5" />
             <span>All reports are encrypted and visible only to you</span>

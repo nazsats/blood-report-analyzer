@@ -119,27 +119,27 @@ export default function ChatInterface({ reportId, reportSummary }: ChatInterface
                         exit={{ opacity: 0, y: 80, scale: 0.92 }}
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
                         className="fixed bottom-8 right-4 sm:right-8 z-50 w-[calc(100vw-2rem)] sm:w-[420px] h-[620px] max-h-[85vh] rounded-3xl overflow-hidden shadow-2xl shadow-black/50 flex flex-col"
-                        style={{ background: "linear-gradient(160deg, #12072a 0%, #0a0414 100%)", border: "1px solid rgba(124,58,237,0.25)" }}
+                        style={{ background: "linear-gradient(160deg, #12072a 0%, #08110F 100%)", border: "1px solid rgba(124,58,237,0.25)" }}
                     >
                         {/* Top gradient line */}
                         <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary-500 to-transparent" />
 
                         {/* Header */}
-                        <div className="flex items-center justify-between p-5 border-b border-white/8 shrink-0">
+                        <div className="flex items-center justify-between p-5 border-b border-gray-200 dark:border-white/8 shrink-0">
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary-600 to-secondary-500 flex items-center justify-center">
-                                    <Bot className="h-5 w-5 text-white" />
+                                    <Bot className="h-5 w-5 text-gray-900 dark:text-white" />
                                 </div>
                                 <div>
-                                    <h3 className="font-bold text-white text-sm">Dr. AI Assistant</h3>
-                                    <p className="text-xs text-accent-400 flex items-center gap-1">
+                                    <h3 className="font-bold text-gray-900 dark:text-white text-sm">Dr. AI Assistant</h3>
+                                    <p className="text-xs text-accent-600 dark:text-accent-400 flex items-center gap-1">
                                         <span className="w-1.5 h-1.5 rounded-full bg-accent-400 inline-block animate-pulse" />
                                         Report loaded · Ready to help
                                     </p>
                                 </div>
                             </div>
                             <button onClick={() => setIsOpen(false)}
-                                className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white transition-all">
+                                className="p-2 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-white transition-all">
                                 <X className="h-4 w-4" />
                             </button>
                         </div>
@@ -150,14 +150,14 @@ export default function ChatInterface({ reportId, reportSummary }: ChatInterface
                                 <div key={msg.id} className={`flex items-end gap-2.5 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
                                     <div className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mb-0.5 ${msg.role === "user"
                                         ? "bg-gradient-to-br from-primary-600 to-secondary-500"
-                                        : "bg-white/8 border border-white/10"}`}>
+                                        : "bg-gray-50 dark:bg-white/8 border border-gray-200 dark:border-white/10"}`}>
                                         {msg.role === "user"
-                                            ? <User className="h-3.5 w-3.5 text-white" />
-                                            : <Bot className="h-3.5 w-3.5 text-primary-300" />}
+                                            ? <User className="h-3.5 w-3.5 text-gray-900 dark:text-white" />
+                                            : <Bot className="h-3.5 w-3.5 text-primary-700 dark:text-primary-300" />}
                                     </div>
                                     <div className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.role === "user"
                                         ? "bg-gradient-to-br from-primary-600 to-secondary-600 text-white rounded-br-none"
-                                        : "bg-white/6 border border-white/8 text-gray-200 rounded-bl-none"}`}>
+                                        : "bg-gray-50 dark:bg-white/6 border border-gray-200 dark:border-white/8 text-gray-800 dark:text-gray-200 rounded-bl-none"}`}>
                                         <div className="prose prose-sm prose-invert max-w-none [&_p]:mb-1 [&_ul]:mt-1 [&_strong]:text-white">
                                             <ReactMarkdown>{msg.content}</ReactMarkdown>
                                         </div>
@@ -167,10 +167,10 @@ export default function ChatInterface({ reportId, reportSummary }: ChatInterface
 
                             {loading && (
                                 <div className="flex items-end gap-2.5">
-                                    <div className="w-7 h-7 rounded-xl bg-white/8 border border-white/10 flex items-center justify-center shrink-0">
-                                        <Bot className="h-3.5 w-3.5 text-primary-300" />
+                                    <div className="w-7 h-7 rounded-xl bg-gray-50 dark:bg-white/8 border border-gray-200 dark:border-white/10 flex items-center justify-center shrink-0">
+                                        <Bot className="h-3.5 w-3.5 text-primary-700 dark:text-primary-300" />
                                     </div>
-                                    <div className="bg-white/6 border border-white/8 rounded-2xl rounded-bl-none px-4 py-3">
+                                    <div className="bg-gray-50 dark:bg-white/6 border border-gray-200 dark:border-white/8 rounded-2xl rounded-bl-none px-4 py-3">
                                         <div className="flex gap-1">
                                             {[0, 1, 2].map(i => (
                                                 <div key={i} className="w-2 h-2 rounded-full bg-primary-400 animate-bounce"
@@ -184,13 +184,13 @@ export default function ChatInterface({ reportId, reportSummary }: ChatInterface
                             {/* Suggestions */}
                             {showSuggestions && !loading && (
                                 <div className="pt-2">
-                                    <p className="text-xs text-gray-600 mb-2 flex items-center gap-1.5">
+                                    <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 flex items-center gap-1.5">
                                         <Sparkles className="w-3 h-3" /> Suggested questions
                                     </p>
                                     <div className="flex flex-col gap-2">
                                         {SUGGESTIONS.map((s, i) => (
                                             <button key={i} onClick={() => handleSend(s)}
-                                                className="text-left text-xs text-primary-300 border border-primary-500/20 rounded-xl px-3 py-2.5 bg-primary-500/5 hover:bg-primary-500/15 hover:border-primary-500/40 transition-all flex items-center justify-between group">
+                                                className="text-left text-xs text-primary-700 dark:text-primary-300 border border-primary-500/20 rounded-xl px-3 py-2.5 bg-primary-500/5 hover:bg-primary-500/15 hover:border-primary-500/40 transition-all flex items-center justify-between group">
                                                 {s}
                                                 <ChevronDown className="w-3 h-3 rotate-[-90deg] opacity-0 group-hover:opacity-100 transition-opacity" />
                                             </button>
@@ -201,14 +201,14 @@ export default function ChatInterface({ reportId, reportSummary }: ChatInterface
                         </div>
 
                         {/* Input */}
-                        <div className="p-4 border-t border-white/8 shrink-0">
+                        <div className="p-4 border-t border-gray-200 dark:border-white/8 shrink-0">
                             <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex items-center gap-2">
                                 <input
                                     type="text"
                                     value={input}
                                     onChange={(e) => setInput(e.target.value)}
                                     placeholder="Ask about your results…"
-                                    className="flex-1 bg-white/6 border border-white/10 text-white placeholder:text-gray-600 px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 focus:bg-white/8 transition-all text-sm"
+                                    className="flex-1 bg-gray-50 dark:bg-white/6 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-600 px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 focus:bg-white/8 transition-all text-sm"
                                 />
                                 <button type="submit" disabled={!input.trim() || loading}
                                     className="p-3 bg-gradient-to-br from-primary-600 to-secondary-500 text-white rounded-2xl hover:shadow-lg hover:shadow-primary-500/30 disabled:opacity-40 disabled:cursor-not-allowed transition-all shrink-0">

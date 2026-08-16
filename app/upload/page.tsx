@@ -294,7 +294,7 @@ export default function UploadPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0414]">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#08110F]">
         <div className="w-12 h-12 rounded-full border-2 border-primary-700 border-t-primary-400 animate-spin" />
       </div>
     );
@@ -302,7 +302,7 @@ export default function UploadPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0a0414] px-4">
+      <div className="min-h-screen flex items-center justify-center bg-white dark:bg-[#08110F] px-4">
         <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
         {/* Background effects */}
         <div className="fixed inset-0 pointer-events-none">
@@ -312,13 +312,13 @@ export default function UploadPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="relative text-center max-w-sm w-full glass-card border border-white/10 p-10 rounded-3xl z-10"
+          className="relative text-center max-w-sm w-full glass-card border border-gray-200 dark:border-white/10 p-10 rounded-3xl z-10"
         >
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-600/30 to-secondary-500/30 border border-primary-500/30 flex items-center justify-center mx-auto mb-6">
-            <Sparkles className="w-8 h-8 text-primary-400" />
+            <Sparkles className="w-8 h-8 text-primary-600 dark:text-primary-400" />
           </div>
-          <h2 className="text-2xl font-bold text-white mb-3">Sign In Required</h2>
-          <p className="text-gray-400 mb-8 text-sm leading-relaxed">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-3">Sign In Required</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-8 text-sm leading-relaxed">
             Securely sign in to analyze your health reports and access your personalized wellness data.
           </p>
           <motion.button
@@ -335,7 +335,7 @@ export default function UploadPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0a0414] relative overflow-hidden">
+    <div className="min-h-screen bg-white dark:bg-[#08110F] relative overflow-hidden">
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
 
       {/* Background effects */}
@@ -351,7 +351,7 @@ export default function UploadPage() {
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-300 text-sm font-medium mb-6"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-700 dark:text-primary-300 text-sm font-medium mb-6"
           >
             <Sparkles className="w-3.5 h-3.5" />
             AI Analysis Ready
@@ -360,7 +360,7 @@ export default function UploadPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
-            className="text-4xl sm:text-5xl font-black text-white mb-4 tracking-tight"
+            className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-4 tracking-tight"
           >
             Upload Your
             <span className="gradient-text"> Blood Report</span>
@@ -369,7 +369,7 @@ export default function UploadPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-gray-400"
+            className="text-gray-600 dark:text-gray-400"
           >
             Supports PDF, JPG, and PNG · Usually takes a minute or two
           </motion.p>
@@ -387,7 +387,7 @@ export default function UploadPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="relative rounded-3xl border border-white/10 bg-white/3 backdrop-blur-xl overflow-hidden"
+          className="relative rounded-3xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/3 backdrop-blur-xl overflow-hidden"
         >
           {/* Top gradient line */}
           <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary-500/50 to-transparent" />
@@ -408,7 +408,7 @@ export default function UploadPage() {
                     onClick={() => fileInputRef.current?.click()}
                     className={`relative rounded-2xl border-2 border-dashed p-12 text-center cursor-pointer transition-all duration-300 ${isDragOver
                         ? "border-primary-400 bg-primary-500/10 scale-[1.01]"
-                        : "border-white/15 hover:border-primary-500/50 hover:bg-white/4"
+                        : "border-gray-200 dark:border-white/15 hover:border-primary-500/50 hover:bg-white/4"
                       }`}
                   >
                     {/* Animated glow when dragging */}
@@ -422,22 +422,22 @@ export default function UploadPage() {
                       className="relative"
                     >
                       <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary-600/25 to-secondary-500/25 border border-primary-500/25 flex items-center justify-center mx-auto mb-6">
-                        <CloudUpload className="w-10 h-10 text-primary-400" />
+                        <CloudUpload className="w-10 h-10 text-primary-600 dark:text-primary-400" />
                       </div>
                     </motion.div>
 
-                    <h3 className="text-xl font-bold text-white mb-2">
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                       {isDragOver ? "Drop your file here!" : "Drag & Drop your file"}
                     </h3>
-                    <p className="text-gray-500 mb-8">or click to browse from your device</p>
+                    <p className="text-gray-500 dark:text-gray-400 mb-8">or click to browse from your device</p>
 
                     <div className="flex justify-center gap-3">
                       {[
                         { icon: FileText, label: "PDF" },
                         { icon: Image, label: "JPG / PNG" },
                       ].map((t) => (
-                        <div key={t.label} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-sm text-gray-400 font-medium">
-                          <t.icon className="w-4 h-4 text-primary-400" />
+                        <div key={t.label} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-sm text-gray-600 dark:text-gray-400 font-medium">
+                          <t.icon className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                           {t.label}
                         </div>
                       ))}
@@ -459,7 +459,7 @@ export default function UploadPage() {
                   exit={{ opacity: 0, scale: 0.96 }}
                 >
                   {/* Preview */}
-                  <div className="relative rounded-2xl border border-white/10 bg-white/3 p-6 mb-6">
+                  <div className="relative rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/3 p-6 mb-6">
                     <button
                       onClick={clearFile}
                       className="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center transition-colors z-10 shadow-lg"
@@ -471,35 +471,35 @@ export default function UploadPage() {
                       <div className="relative h-56 w-full overflow-hidden rounded-xl">
                         <img src={preview} alt="Preview" className="w-full h-full object-contain" />
                         {pdfPages.length > 1 && (
-                          <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-gray-900/80 text-xs text-gray-200 font-medium border border-white/10">
+                          <div className="absolute bottom-3 right-3 px-2.5 py-1 rounded-lg bg-gray-900/80 text-xs text-gray-800 dark:text-gray-200 font-medium border border-gray-200 dark:border-white/10">
                             {pdfPages.length} pages
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div className="h-56 flex flex-col items-center justify-center text-gray-500">
+                      <div className="h-56 flex flex-col items-center justify-center text-gray-500 dark:text-gray-400">
                         <div className="relative mb-3">
                           <FileText className="w-16 h-16 text-primary-500/50" />
                           <div className="absolute -top-1 -right-1 px-1.5 py-0.5 rounded bg-primary-600 text-white text-[10px] font-bold">PDF</div>
                         </div>
-                        <p className="font-medium text-white text-sm">{file.name}</p>
-                        <p className="text-xs text-gray-500 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                        <p className="font-medium text-gray-900 dark:text-white text-sm">{file.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                       </div>
                     )}
 
                     {/* File info */}
                     <div className="mt-4 flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
-                        <FileText className="w-4 h-4 text-primary-400" />
+                      <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <FileText className="w-4 h-4 text-primary-600 dark:text-primary-400" />
                         <span className="truncate max-w-[200px]">{file.name}</span>
                       </div>
                       {isExtracting ? (
-                        <div className="flex items-center gap-2 text-xs text-secondary-400 font-medium">
+                        <div className="flex items-center gap-2 text-xs text-secondary-600 dark:text-secondary-400 font-medium">
                           <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           Reading PDF...
                         </div>
                       ) : (
-                        <div className="flex items-center gap-1.5 text-xs text-accent-400 font-medium">
+                        <div className="flex items-center gap-1.5 text-xs text-accent-600 dark:text-accent-400 font-medium">
                           <CheckCircle2 className="w-3.5 h-3.5" />
                           Ready to analyze
                         </div>
@@ -552,7 +552,7 @@ export default function UploadPage() {
                     <button
                       onClick={clearFile}
                       disabled={uploading}
-                      className="w-full py-3 text-gray-500 hover:text-gray-300 transition-colors text-sm font-medium"
+                      className="w-full py-3 text-gray-500 dark:text-gray-400 hover:text-gray-300 transition-colors text-sm font-medium"
                     >
                       Choose a different file
                     </button>
@@ -613,7 +613,7 @@ export default function UploadPage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="mt-8 flex flex-wrap justify-center gap-4 text-xs text-gray-600"
+          className="mt-8 flex flex-wrap justify-center gap-4 text-xs text-gray-600 dark:text-gray-400"
         >
           {["🔒 Encrypted in transit & at rest", "🔐 Private to your account", "⚡ Powered by GPT-4o Vision", "🗑️ Delete your reports anytime"].map((t) => (
             <span key={t}>{t}</span>
@@ -628,7 +628,7 @@ export default function UploadPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#0a0414]/95 backdrop-blur-xl z-50 flex items-center justify-center px-4"
+            className="fixed inset-0 bg-[#08110F]/95 backdrop-blur-xl z-50 flex items-center justify-center px-4"
           >
             <div className="w-full max-w-md text-center">
               {/* Animated ring */}
@@ -636,12 +636,12 @@ export default function UploadPage() {
                 <div className="absolute inset-0 rounded-full bg-primary-500/20 animate-ping" />
                 <div className="absolute inset-2 rounded-full bg-primary-500/10 animate-ping" style={{ animationDelay: "0.3s" }} />
                 <div className="relative w-20 h-20 rounded-full bg-gradient-to-br from-primary-600/30 to-secondary-500/30 border border-primary-500/40 flex items-center justify-center">
-                  <Sparkles className="w-9 h-9 text-primary-300 animate-pulse" />
+                  <Sparkles className="w-9 h-9 text-primary-700 dark:text-primary-300 animate-pulse" />
                 </div>
               </div>
 
-              <h2 className="text-2xl font-black text-white mb-2">Analyzing Your Health</h2>
-              <p className="text-gray-500 text-sm mb-10">Our AI is working through your blood report...</p>
+              <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">Analyzing Your Health</h2>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mb-10">Our AI is working through your blood report...</p>
 
               <div className="space-y-3 text-left">
                 {LOADING_MESSAGES.map((msg, idx) => {
@@ -662,14 +662,14 @@ export default function UploadPage() {
                         }`}
                     >
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${isActive ? "bg-primary-600 text-white" :
-                          isCompleted ? "bg-accent-500/20 text-accent-400" :
-                            "bg-white/5 text-gray-600"
+                          isCompleted ? "bg-accent-500/20 text-accent-600 dark:text-accent-400" :
+                            "bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-gray-400"
                         }`}>
                         {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : <Icon className="w-4 h-4" />}
                       </div>
-                      <span className={`text-sm font-medium ${isActive ? "text-primary-300" :
-                          isCompleted ? "text-accent-400" :
-                            "text-gray-600"
+                      <span className={`text-sm font-medium ${isActive ? "text-primary-700 dark:text-primary-300" :
+                          isCompleted ? "text-accent-600 dark:text-accent-400" :
+                            "text-gray-600 dark:text-gray-400"
                         }`}>
                         {msg.text}
                       </span>

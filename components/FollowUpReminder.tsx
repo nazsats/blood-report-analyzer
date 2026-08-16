@@ -101,7 +101,7 @@ export default function FollowUpReminder({ reportId, suggestions = [] }: FollowU
             <motion.button
                 whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                 onClick={() => setIsOpen(true)}
-                className="relative flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary-500/15 border border-primary-500/25 text-primary-300 hover:bg-primary-500/25 transition-all text-sm font-semibold">
+                className="relative flex items-center gap-2 px-5 py-3 rounded-2xl bg-primary-500/15 border border-primary-500/25 text-primary-700 dark:text-primary-300 hover:bg-primary-500/25 transition-all text-sm font-semibold">
                 <BellRing className="w-4 h-4" />
                 Reminders
                 {upcoming.length > 0 && (
@@ -129,15 +129,15 @@ export default function FollowUpReminder({ reportId, suggestions = [] }: FollowU
                             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary-500 to-transparent" />
 
                             {/* Header */}
-                            <div className="flex items-center justify-between p-6 border-b border-white/8 shrink-0">
+                            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-white/8 shrink-0">
                                 <div>
-                                    <h2 className="text-xl font-bold text-white flex items-center gap-2.5">
-                                        <Bell className="w-5 h-5 text-primary-400" /> Follow-Up Reminders
+                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2.5">
+                                        <Bell className="w-5 h-5 text-primary-600 dark:text-primary-400" /> Follow-Up Reminders
                                     </h2>
-                                    <p className="text-gray-500 text-xs mt-1">Track re-tests, appointments, and health goals</p>
+                                    <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">Track re-tests, appointments, and health goals</p>
                                 </div>
                                 <button onClick={() => setIsOpen(false)}
-                                    className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-500 hover:text-white transition-all">
+                                    className="p-2 rounded-xl bg-gray-50 dark:bg-white/5 hover:bg-white/10 text-gray-500 dark:text-gray-400 hover:text-white transition-all">
                                     <X className="w-4 h-4" />
                                 </button>
                             </div>
@@ -145,13 +145,13 @@ export default function FollowUpReminder({ reportId, suggestions = [] }: FollowU
                             <div className="flex-1 overflow-y-auto p-6 space-y-6">
                                 {/* Add new reminder */}
                                 <div className="space-y-3">
-                                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">Add Reminder</h3>
+                                    <h3 className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest">Add Reminder</h3>
                                     <input type="text" value={label} onChange={e => setLabel(e.target.value)}
                                         placeholder="e.g. Retest Vitamin D in 8 weeks"
-                                        className="w-full bg-white/5 border border-white/10 text-white placeholder:text-gray-600 px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 text-sm" />
+                                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white placeholder:text-gray-600 px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 text-sm" />
                                     <div className="flex gap-3">
                                         <input type="date" value={date} onChange={e => setDate(e.target.value)} min={today}
-                                            className="flex-1 bg-white/5 border border-white/10 text-white px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 text-sm [color-scheme:dark]" />
+                                            className="flex-1 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-900 dark:text-white px-4 py-3 rounded-2xl focus:outline-none focus:border-primary-500/50 text-sm [color-scheme:dark]" />
                                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                                             onClick={addReminder} disabled={saving}
                                             className="flex items-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-primary-600 to-secondary-500 text-white text-sm font-bold shadow-lg shadow-primary-600/25 disabled:opacity-50">
@@ -160,16 +160,16 @@ export default function FollowUpReminder({ reportId, suggestions = [] }: FollowU
                                     </div>
                                     <input type="text" value={notes} onChange={e => setNotes(e.target.value)}
                                         placeholder="Notes (optional)"
-                                        className="w-full bg-white/5 border border-white/10 text-gray-300 placeholder:text-gray-600 px-4 py-2.5 rounded-2xl focus:outline-none focus:border-primary-500/50 text-xs" />
+                                        className="w-full bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-300 placeholder:text-gray-600 px-4 py-2.5 rounded-2xl focus:outline-none focus:border-primary-500/50 text-xs" />
                                 </div>
 
                                 {/* Quick-add suggestions */}
                                 <div>
-                                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">Quick Add</h3>
+                                    <h3 className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-3">Quick Add</h3>
                                     <div className="flex flex-wrap gap-2">
                                         {allSuggestions.map((s, i) => (
                                             <button key={i} onClick={() => setLabel(s)}
-                                                className="text-xs px-3 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-300 hover:bg-primary-500/20 transition-colors">
+                                                className="text-xs px-3 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-700 dark:text-primary-300 hover:bg-primary-500/20 transition-colors">
                                                 + {s}
                                             </button>
                                         ))}
@@ -179,28 +179,28 @@ export default function FollowUpReminder({ reportId, suggestions = [] }: FollowU
                                 {/* Reminders list */}
                                 {sortedReminders.length > 0 && (
                                     <div>
-                                        <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-3">Your Reminders</h3>
+                                        <h3 className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase tracking-widest mb-3">Your Reminders</h3>
                                         <div className="space-y-2.5">
                                             {sortedReminders.map(r => {
                                                 const dateObj = new Date(r.date);
                                                 const isOverdue = !r.done && dateObj < new Date();
                                                 return (
-                                                    <div key={r.id} className={`flex items-start gap-3 p-4 rounded-2xl border transition-all ${r.done ? "bg-white/2 border-white/5 opacity-50" :
+                                                    <div key={r.id} className={`flex items-start gap-3 p-4 rounded-2xl border transition-all ${r.done ? "bg-gray-50 dark:bg-white/2 border-gray-200 dark:border-white/5 opacity-50" :
                                                             isOverdue ? "bg-red-500/8 border-red-500/20" :
-                                                                "bg-white/4 border-white/8"}`}>
+                                                                "bg-gray-50 dark:bg-white/4 border-gray-200 dark:border-white/8"}`}>
                                                         <button onClick={() => toggleDone(r.id)}
-                                                            className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${r.done ? "bg-accent-500 border-accent-500" : isOverdue ? "border-red-400" : "border-white/20 hover:border-primary-400"}`}>
-                                                            {r.done && <Check className="w-3 h-3 text-white" />}
+                                                            className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all ${r.done ? "bg-accent-500 border-accent-500" : isOverdue ? "border-red-400" : "border-gray-200 dark:border-white/20 hover:border-primary-400"}`}>
+                                                            {r.done && <Check className="w-3 h-3 text-gray-900 dark:text-white" />}
                                                         </button>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className={`text-sm font-medium ${r.done ? "line-through text-gray-600" : "text-white"}`}>{r.label}</p>
+                                                            <p className={`text-sm font-medium ${r.done ? "line-through text-gray-600 dark:text-gray-400" : "text-gray-900 dark:text-white"}`}>{r.label}</p>
                                                             <div className="flex items-center gap-2 mt-1">
-                                                                <Clock className={`w-3 h-3 ${isOverdue ? "text-red-400" : "text-gray-600"}`} />
-                                                                <span className={`text-xs ${isOverdue ? "text-red-400 font-semibold" : "text-gray-500"}`}>
+                                                                <Clock className={`w-3 h-3 ${isOverdue ? "text-red-400" : "text-gray-600 dark:text-gray-400"}`} />
+                                                                <span className={`text-xs ${isOverdue ? "text-red-400 font-semibold" : "text-gray-500 dark:text-gray-400"}`}>
                                                                     {isOverdue ? "Overdue · " : ""}{dateObj.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                                                                 </span>
                                                             </div>
-                                                            {r.notes && <p className="text-xs text-gray-600 mt-1">{r.notes}</p>}
+                                                            {r.notes && <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{r.notes}</p>}
                                                         </div>
                                                         <button onClick={() => deleteReminder(r.id)}
                                                             className="p-1.5 rounded-lg text-gray-700 hover:text-red-400 hover:bg-red-500/10 transition-all shrink-0">
@@ -214,7 +214,7 @@ export default function FollowUpReminder({ reportId, suggestions = [] }: FollowU
                                 )}
 
                                 {reminders.length === 0 && (
-                                    <div className="text-center py-8 text-gray-600">
+                                    <div className="text-center py-8 text-gray-600 dark:text-gray-400">
                                         <Bell className="w-10 h-10 mx-auto mb-2 opacity-20" />
                                         <p className="text-sm">No reminders yet. Add your first one above.</p>
                                     </div>
