@@ -804,7 +804,7 @@ export default function ResultsPage() {
                       <RadarChart data={radarData}>
                         <PolarGrid stroke="rgba(255,255,255,0.05)" />
                         <PolarAngleAxis dataKey="subject" tick={{ fill: "#6b7280", fontSize: 11 }} />
-                        <Radar name="Health %" dataKey="value" stroke="#7c3aed" fill="#7c3aed" fillOpacity={0.2} strokeWidth={2} />
+                        <Radar name="Health %" dataKey="value" stroke="#0F766E" fill="#0F766E" fillOpacity={0.2} strokeWidth={2} />
                         <Tooltip contentStyle={{ backgroundColor: "#12072a", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 12, color: "#fff" }}
                           formatter={(v: any) => [`${v}%`, "Health"]} />
                       </RadarChart>

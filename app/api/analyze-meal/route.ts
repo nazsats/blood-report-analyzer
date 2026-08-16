@@ -1,7 +1,7 @@
 // app/api/analyze-meal/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { getOpenAI } from '@/lib/openaiClient';
 import { v4 as uuidv4 } from 'uuid';
-import OpenAI from 'openai';
 import { adminDb, getAdminApp } from '@/lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
 import sharp from 'sharp';
@@ -11,11 +11,6 @@ import sharp from 'sharp';
 export const maxDuration = 60;
 export const runtime = 'nodejs';
 
-const openai = new OpenAI({
-  // Just under maxDuration, so a slow model call surfaces as a JSON error.
-  timeout: 55000,
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function OPTIONS() {
   return new NextResponse(null, {
@@ -81,7 +76,7 @@ export async function POST(req: NextRequest) {
 
     // Call GPT-4o Vision
     console.log('[analyze-meal] Step 5: Calling OpenAI GPT-4o Vision');
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-4o',
       messages: [
         {

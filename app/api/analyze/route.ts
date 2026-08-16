@@ -1,7 +1,7 @@
 // app/api/analyze/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { getOpenAI } from '@/lib/openaiClient';
 import { v4 as uuidv4 } from 'uuid';
-import OpenAI from 'openai';
 import { adminDb, getAdminApp } from '@/lib/firebaseAdmin';
 import { ANALYZE_LIMIT, consumeRateLimit } from '@/lib/rateLimit';
 import sharp from 'sharp';
@@ -30,13 +30,6 @@ async function extractPdfText(buffer: Buffer): Promise<string> {
 export const maxDuration = 60;
 export const runtime = 'nodejs';
 
-const openai = new OpenAI({
-  // Kept just under maxDuration so the SDK times out first and we can return a
-  // readable JSON error, rather than the platform hard-killing the function and
-  // returning an HTML error page.
-  timeout: 55000,
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function OPTIONS() {
   return new NextResponse(null, {
@@ -336,7 +329,7 @@ Be accurate and complete on the numbers, concise on the prose.`;
     // measured output is ~2.4k, so 4000 leaves headroom for a report with an
     // unusually long marker list without leaving an 8000-token bill exposed.
     console.log(`[API Analyze] Calling OpenAI (${isPaid ? 'full' : 'free'} tier)…`);
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-4.1',
       messages: [
         { role: 'system', content: finalPrompt },

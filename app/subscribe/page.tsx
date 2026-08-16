@@ -116,7 +116,7 @@ export default function SubscribePage() {
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
         subscription_id: createData.subscriptionId,
-        name: "BloodAI",
+        name: "Blood Lab",
         description: `${planName} Plan`,
         image: "/logo.png",
         handler: async (response: any) => {
@@ -135,7 +135,7 @@ export default function SubscribePage() {
                 particleCount: 200,
                 spread: 80,
                 origin: { y: 0.6 },
-                colors: ["#7c3aed", "#06b6d4", "#4ade80", "#f59e0b"],
+                colors: ["#0F766E", "#06b6d4", "#4ade80", "#f59e0b"],
                 ticks: 300,
               });
               router.push("/upload");
@@ -151,7 +151,7 @@ export default function SubscribePage() {
           email: auth.currentUser?.email || "",
           contact: auth.currentUser?.phoneNumber || "",
         },
-        theme: { color: "#7c3aed" },
+        theme: { color: "#0F766E" },
         modal: { ondismiss: () => setLoading(null) },
       };
 

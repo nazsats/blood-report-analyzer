@@ -659,7 +659,7 @@ export default function SharePage() {
                       <RadarChart data={radarData}>
                         <PolarGrid stroke="rgba(255,255,255,0.08)" />
                         <PolarAngleAxis dataKey="subject" tick={{ fill: "#9ca3af", fontSize: 10 }} />
-                        <Radar name="Value %" dataKey="value" stroke="#8b5cf6" fill="#8b5cf6" fillOpacity={0.25} />
+                        <Radar name="Value %" dataKey="value" stroke="#0d9488" fill="#0d9488" fillOpacity={0.25} />
                         <Tooltip contentStyle={{ background: "#1a0a2e", border: "1px solid rgba(255,255,255,0.1)", borderRadius: "12px", color: "#fff" }} />
                       </RadarChart>
                     </ResponsiveContainer>

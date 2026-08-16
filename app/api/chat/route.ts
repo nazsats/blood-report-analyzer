@@ -1,6 +1,6 @@
 // app/api/chat/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { getOpenAI } from '@/lib/openaiClient';
 import { getAdminApp } from '@/lib/firebaseAdmin';
 
 // See the analyze route: without this the platform default can cut off a reply
@@ -8,10 +8,6 @@ import { getAdminApp } from '@/lib/firebaseAdmin';
 export const maxDuration = 60;
 export const runtime = 'nodejs';
 
-const openai = new OpenAI({
-  timeout: 55000,
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function POST(req: NextRequest) {
   try {
@@ -89,7 +85,7 @@ CONVERSATION GUIDELINES:
 9. Format responses clearly — use short paragraphs or bullet points for lists.
 10. If asked about diet, reference the specific foods already recommended in this report.`;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenAI().chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },

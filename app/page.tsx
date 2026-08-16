@@ -401,7 +401,7 @@ export default function Home() {
             <span className="font-bold text-white">Blood<span className="text-primary-400">AI</span></span>
           </div>
           <p className="text-gray-500 text-sm text-center">
-            © 2025 BloodAI. For informational purposes only — not medical advice.
+            © 2025 Blood Lab. For informational purposes only — not medical advice.
           </p>
           <div className="flex gap-6 text-sm text-gray-500">
             <a href="#" className="hover:text-white transition-colors">Privacy</a>
