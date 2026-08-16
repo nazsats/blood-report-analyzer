@@ -20,7 +20,7 @@ service cloud.firestore {
     /** Fields the client must never set on itself — these decide what it pays. */
     function touchesBilling() {
       return request.resource.data.diff(resource.data).affectedKeys()
-             .hasAny(['pro', 'freeUploadsUsed', 'subscriptionEnd', 'subscriptionId']);
+             .hasAny(['pro', 'credits', 'freeUploadsUsed', 'subscriptionEnd', 'subscriptionId']);
     }
 
     // ---- users/{uid} : billing state, owned by the server -------------------
@@ -31,7 +31,7 @@ service cloud.firestore {
     match /users/{uid} {
       allow read:   if isOwner(uid);
       allow create: if isOwner(uid) && !request.resource.data.keys()
-                       .hasAny(['pro', 'freeUploadsUsed', 'subscriptionEnd', 'subscriptionId']);
+                       .hasAny(['pro', 'credits', 'freeUploadsUsed', 'subscriptionEnd', 'subscriptionId']);
       allow update: if isOwner(uid) && !touchesBilling();
       allow delete: if false;
     }
@@ -68,6 +68,15 @@ service cloud.firestore {
 
       // Reports are created by the server, never by a client.
       allow create: if false;
+    }
+
+    // ---- orders/{orderId} : payment records, server only -------------------
+    // Written by /api/create-order and updated by /api/verify-payment. A client
+    // that could write here could mark its own order paid, so it gets nothing —
+    // not even read, since the credit balance on users/{uid} is the thing the
+    // app actually needs to show.
+    match /orders/{orderId} {
+      allow read, write: if false;
     }
 
     // ---- rateLimits/{bucket}:{uid} : server only ---------------------------

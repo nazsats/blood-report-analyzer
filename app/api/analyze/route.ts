@@ -124,13 +124,23 @@ export async function POST(req: NextRequest) {
     const FREE_UPLOADS = 1;
     const used: number = userData.freeUploadsUsed ?? 0;
     const isPro: boolean = userData.pro === true;
+    const credits: number = userData.credits ?? 0;
 
-    if (!isPro && used >= FREE_UPLOADS) {
+    // Three ways to be entitled to a report, in the order we want them spent:
+    // an old unlimited subscription, then a bought credit, then the one free
+    // look. Credits before the free scan is deliberate — someone who has paid
+    // should get the full analysis now, and still have their free one if they
+    // ever run out.
+    const usingCredit = !isPro && credits > 0;
+    const usingFree = !isPro && !usingCredit && used < FREE_UPLOADS;
+
+    if (!isPro && !usingCredit && !usingFree) {
       return NextResponse.json(
         {
-          error: 'free_limit_reached',
-          message: 'You have used your free report. Unlock the full analysis to continue.',
+          error: 'payment_required',
+          message: 'You have used your free report. Buy a report to continue.',
           freeUploadsUsed: used,
+          credits,
         },
         { status: 402 },
       );
@@ -303,7 +313,7 @@ CRITICAL RULES:
     // One prompt, not two. A second full medical prompt would drift out of
     // sync with this one within a couple of edits, and a blood report is not
     // the place to discover that the free tier is following stale rules.
-    const isPaid = userData.pro === true;
+    const isPaid = isPro || usingCredit;
 
     const FREE_TIER_BRIEF = `
 
@@ -394,7 +404,12 @@ Be accurate and complete on the numbers, concise on the prose.`;
     // photo or an OpenAI timeout — a refund conversation over a free feature.
     // Increment, rather than write used+1, so two requests racing cannot both
     // read 0 and both write 1.
-    if (!isPro) {
+    // Spend the entitlement only now, on a report that actually completed. A
+    // blurry photo or an OpenAI timeout must not cost someone a paid credit —
+    // that is a refund conversation, and a fair complaint.
+    if (usingCredit) {
+      await userRef.update({ credits: FieldValue.increment(-1) });
+    } else if (usingFree) {
       await userRef.update({ freeUploadsUsed: FieldValue.increment(1) });
     }
 
