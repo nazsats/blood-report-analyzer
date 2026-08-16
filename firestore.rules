@@ -51,20 +51,14 @@ service cloud.firestore {
       // Fetching one document by its id: owner only.
       allow get: if signedIn() && resource.data.userId == request.auth.uid;
 
-      // KNOWN EXPOSURE — the share page (app/share/[shareId]/page.tsx) queries
-      // this collection while signed out, so shared documents must be listable.
-      // Every report gets a shareId stamped on it by the analyze route, so in
-      // practice this clause makes every report in the database listable by an
-      // unauthenticated caller who queries the collection directly. These are
-      // blood test results.
-      //
-      // The fix is to stop the browser reading `reports` at all: move the share
-      // page onto a server route that looks the document up with the Admin SDK
-      // and returns only the fields a share needs. Then this clause becomes
-      // owner-only. Left in place for now because removing it breaks a live
-      // feature, but it should not survive a public launch.
-      allow list: if (signedIn() && resource.data.userId == request.auth.uid)
-                  || resource.data.shareId != null;
+      // Listing is owner-only. The share page used to query this collection
+      // from the browser, which forced a clause permitting any document with a
+      // shareId — and the analyze route stamps one on every report, so the whole
+      // collection was listable by an unauthenticated caller. Shares now read
+      // through /api/share/[shareId], which uses the Admin SDK and returns only
+      // the fields a share needs, so the browser has no reason to touch reports
+      // directly at all.
+      allow list: if signedIn() && resource.data.userId == request.auth.uid;
 
       allow update: if signedIn()
                     && resource.data.userId == request.auth.uid

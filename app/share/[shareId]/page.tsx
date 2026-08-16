@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import { db } from "@/lib/firebaseClient";
-import { collection, query, where, getDocs } from "firebase/firestore";
 import {
   Loader2, AlertCircle, CheckCircle2, Info,
   Activity, Target, Utensils, Moon, Sun,
@@ -149,10 +147,19 @@ export default function SharePage() {
     const fetchReport = async () => {
       if (!shareId) { setError("Invalid share link"); setLoading(false); return; }
       try {
-        const q = query(collection(db, "reports"), where("shareId", "==", shareId));
-        const snap = await getDocs(q);
-        if (snap.empty) { setError("Report not found or link expired"); setLoading(false); return; }
-        setReport(snap.docs[0].data() as Report);
+        // Read through the API rather than querying Firestore from the
+        // browser. Doing it client-side forced the rules to allow listing any
+        // report with a shareId, and every report has one — so the whole
+        // collection was readable by anyone who asked.
+        const res = await fetch(`/api/share/${encodeURIComponent(shareId)}`);
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          setError(body.error || "Report not found or link expired");
+          setLoading(false);
+          return;
+        }
+        const { report: shared } = await res.json();
+        setReport(shared as Report);
       } catch {
         setError("Failed to load shared report");
       } finally {
