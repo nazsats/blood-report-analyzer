@@ -20,19 +20,25 @@ export default function ContactPage() {
                 </p>
             </Section>
 
-            <Section title="Phone">
-                <p>{BUSINESS.phone}</p>
-                <p className="text-sm text-gray-500">Monday to Saturday, 10am to 7pm IST.</p>
-            </Section>
+            {BUSINESS.phone ? (
+                <Section title="Phone">
+                    <p>{BUSINESS.phone}</p>
+                    <p className="text-sm text-gray-500">Monday to Saturday, 10am to 7pm IST.</p>
+                </Section>
+            ) : null}
 
             <Section title="Registered address">
                 <p>
                     {BUSINESS.name}
-                    <br />
-                    {BUSINESS.address}
+                    {BUSINESS.address ? <><br />{BUSINESS.address}</> : null}
                     <br />
                     {BUSINESS.city}
                 </p>
+                {!BUSINESS.address ? (
+                    <p className="text-sm text-gray-500">
+                        Full postal address available on request by email.
+                    </p>
+                ) : null}
             </Section>
 
             <Section title="What to include">

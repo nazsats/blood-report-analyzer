@@ -11,17 +11,26 @@ import type { ReactNode } from 'react';
 
 export const LEGAL_UPDATED = '16 August 2026';
 
-/** Single source for the details that appear across several policies. */
+/**
+ * Single source for the details that appear across several policies.
+ *
+ * The phone number and street address come from the environment, not from
+ * this file. This repository is public, and a home address committed here
+ * would stay in the git history after any later removal — "delete it once KYC
+ * is done" is not something git supports.
+ *
+ * Setting them in Vercel means they render on the live site for Razorpay's
+ * reviewer and for customers, and removing them later is one settings change
+ * with no commit and no trace. If unset, the pages fall back to the email,
+ * which is what should ship if these are ever cleared.
+ */
 export const BUSINESS = {
     name: 'Mohammad Nazrul Ansari',
     trading: 'Blood Lab',
     email: 'dudelynft@gmail.com',
-    address: 'Santa Cruz',
+    address: process.env.NEXT_PUBLIC_CONTACT_ADDRESS ?? '',
     city: 'Mumbai, Maharashtra, India',
-    // TODO — Razorpay verifies this during activation and a contact page
-    // without a reachable number is a common rejection. Fill it before
-    // submitting.
-    phone: '[ADD YOUR PHONE NUMBER]',
+    phone: process.env.NEXT_PUBLIC_CONTACT_PHONE ?? '',
 } as const;
 
 export default function LegalPage({
