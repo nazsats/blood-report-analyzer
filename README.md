@@ -1,11 +1,17 @@
-# 🩸 BloodAI — Understand Your Blood Test
+# 🩸 Blood Lab — Understand Your Blood Test
 
-**Your lab gives you numbers. BloodAI tells you what they mean.**
+**Your lab gives you numbers. Blood Lab gives you sentences.**
+
+**Live at [www.bloodlab.in](https://www.bloodlab.in)** · Android app in closed testing
 
 Upload a photo or PDF of your blood test, and get a plain-English explanation of every
 result, what might be causing anything unusual, and what you can actually do about it.
 
-![BloodAI home page](docs/screenshots/landing-hero.png)
+![Blood Lab home page](docs/screenshots/landing-hero.png)
+
+> **Note:** the screenshots below were taken before the August 2026 redesign and
+> still show the previous violet theme and the old name. They are accurate about
+> what each screen does, not about how it currently looks.
 
 ---
 
@@ -17,7 +23,7 @@ so you can tell something is off — but not **why** it's off, **how serious** i
 **what to do next**. Your doctor has ten minutes and will focus on the worst number.
 Everything else goes unexplained until, years later, it turns into a real problem.
 
-BloodAI reads that same report and explains it to you like a patient teacher would.
+Blood Lab reads that same report and explains it to you like a patient teacher would.
 
 ---
 
@@ -66,7 +72,7 @@ Three steps, about a minute or two.
 Everything below is a real run on a public sample lab report — a
 [Drlogy Complete Blood Count template](https://drlogy.com). The report has 19 markers,
 two of them out of range: haemoglobin low at 12.5 g/dL and packed cell volume high at
-57.5%. BloodAI found both.
+57.5%. Blood Lab found both.
 
 ### 1. Drop in your report
 
@@ -108,7 +114,7 @@ the reasoning, and how to prevent each one.
 
 ### 7. Check your medicines
 
-If you list what you take, BloodAI flags known interactions with your lab values.
+If you list what you take, Blood Lab flags known interactions with your lab values.
 
 ![Medication alerts](docs/screenshots/results-medications.png)
 
@@ -117,6 +123,32 @@ If you list what you take, BloodAI flags known interactions with your lab values
 ![Home page, full](docs/screenshots/landing-full.png)
 
 ---
+
+## Pricing
+
+The first report is free — no card, and you see the full marker breakdown before
+deciding whether it is worth paying for. After that, reports are ₹25 each or ₹60
+for three, bought through Razorpay (UPI, cards, netbanking).
+
+There is no subscription. Not buying is cancelling.
+
+## What runs on the server
+
+Some things deliberately never touch the browser:
+
+- **Prices** live in `lib/packs.ts`. The client sends a pack id, never an amount,
+  so devtools cannot buy three reports for ₹1.
+- **Payment verification** checks the HMAC signature, asks Razorpay whether the
+  payment actually captured, and refuses to credit an order twice.
+- **Entitlement** — subscription, then bought credit, then the one free look —
+  is decided from the user document, and only spent once a report completes. A
+  blurry photo does not cost a paid credit.
+- **Rate limiting** is per user in Firestore rather than in memory, because each
+  serverless invocation may be a fresh instance and an in-process counter counts
+  nothing.
+- **Shared reports** resolve through `/api/share/[shareId]` with the Admin SDK,
+  returning an allowlist of fields. The browser never queries the reports
+  collection, which is what lets the security rules stay owner-only.
 
 ## Built with
 
@@ -286,7 +318,7 @@ product.
 
 ## ⚠️ Important — please read
 
-**BloodAI is not a doctor and does not give medical advice.**
+**Blood Lab is not a doctor and does not give medical advice.**
 
 It is an educational tool that helps you understand what is written on your lab report.
 It can be wrong. It can misread a number. It can miss something important.

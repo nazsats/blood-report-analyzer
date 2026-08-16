@@ -143,7 +143,7 @@
     }
 
     .dark body {
-        @apply bg-[#0a0414] text-gray-100;
+        @apply bg-[#08110F] text-gray-100;
     }
 }
 
