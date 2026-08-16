@@ -21,11 +21,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${jakarta.className} antialiased`}>
-        {/* Light by default, not "system". Following the OS meant anyone with
-            dark mode on their laptop got a dark medical site and never saw the
-            light one — which is the design, and is what the Android app opens
-            in. The toggle in the header still works for anyone who wants dark. */}
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}>
+        {/* Dark by default until the light pass lands. The pages were built
+            dark-first — several still hardcode text-white with no dark: variant
+            — so defaulting to light renders white text on a white background.
+            enableSystem stays off so the default is deterministic rather than
+            depending on whose laptop is in dark mode; the header toggle works. */}
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           <Header /><main className="min-h-screen">{children}</main><Footer />
         </ThemeProvider>
       </body>

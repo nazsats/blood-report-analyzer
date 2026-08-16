@@ -6,6 +6,7 @@ import { adminDb, getAdminApp } from '@/lib/firebaseAdmin';
 import { ANALYZE_LIMIT, consumeRateLimit } from '@/lib/rateLimit';
 import sharp from 'sharp';
 import { FieldValue } from 'firebase-admin/firestore';
+import { FREE_REPORTS } from '@/lib/packs';
 
 // pdf-parse is loaded on demand, never at module scope. Importing it eagerly pulls in
 // @napi-rs/canvas, a native module: if that binary is missing from the deployed bundle
@@ -114,7 +115,7 @@ export async function POST(req: NextRequest) {
     // Free allowance, counted server-side against the uid. The app keeps its
     // own count for deciding which screen to show, but that lives on the
     // device and resets on reinstall — this is the one that holds.
-    const FREE_UPLOADS = 1;
+    const FREE_UPLOADS = FREE_REPORTS;
     const used: number = userData.freeUploadsUsed ?? 0;
     const isPro: boolean = userData.pro === true;
     const credits: number = userData.credits ?? 0;

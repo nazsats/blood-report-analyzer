@@ -206,7 +206,7 @@ export default function Home() {
               </div>
               <div className="flex-1 flex justify-center">
                 <div className="px-3 py-1 rounded-lg bg-white/5 border border-white/8 text-xs text-gray-500 font-mono">
-                  bloodai.app/results/report_xyz
+                  bloodlab.in/results/report_xyz
                 </div>
               </div>
             </div>

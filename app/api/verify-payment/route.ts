@@ -92,6 +92,10 @@ export async function POST(req: NextRequest) {
                 status: 'paid',
                 paymentId,
                 paidAt: new Date().toISOString(),
+                // Which path credited this order. /api/razorpay-webhook writes
+                // the same field, so a glance at the orders collection shows
+                // how many users are dropping off before the browser returns.
+                creditedBy: 'checkout',
             });
             tx.set(
                 adminDb.collection('users').doc(uid),

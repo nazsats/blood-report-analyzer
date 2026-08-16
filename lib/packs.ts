@@ -7,6 +7,15 @@
  * three reports — the classic mistake with client-side pricing.
  */
 
+/**
+ * Reports a new account gets without paying.
+ *
+ * Lives here, next to the prices, because the pricing page promises this number
+ * and the analyze route enforces it. When it was a local const inside the route
+ * the marketing copy could drift from the rule without anything failing.
+ */
+export const FREE_REPORTS = 1;
+
 export type PackId = 'single' | 'triple';
 
 export type Pack = {

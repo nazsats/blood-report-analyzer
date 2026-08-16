@@ -1,6 +1,8 @@
 // app/upload/page.tsx
 "use client";
 
+import BuyReports from "@/components/BuyReports";
+import ReportBalance from "@/components/ReportBalance";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebaseClient";
@@ -110,6 +112,8 @@ export default function UploadPage() {
   const [isExtracting, setIsExtracting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  // 402 is not a failure to apologise for — it is the moment to offer the thing.
+  const [needsPayment, setNeedsPayment] = useState(false);
   const [success, setSuccess] = useState(false);
   const [loadingStep, setLoadingStep] = useState(0);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -252,6 +256,14 @@ export default function UploadPage() {
         headers: { Authorization: `Bearer ${idToken}` },
       });
 
+      if (res.status === 402) {
+        // Out of free reports. Show the packs instead of an error: the upload
+        // was fine, the account simply has nothing left to spend.
+        setNeedsPayment(true);
+        setError("");
+        setUploading(false);
+        return;
+      }
       if (!res.ok) throw new Error(await describeHttpError(res));
 
       const data = await res.json();
@@ -361,6 +373,13 @@ export default function UploadPage() {
           >
             Supports PDF, JPG, and PNG · Usually takes a minute or two
           </motion.p>
+
+          {/* What you have left, before you pick a file rather than after —
+              finding out you are out of reports at the end of an upload is the
+              worst moment to learn it. */}
+          <div className="mt-5">
+            <ReportBalance />
+          </div>
         </div>
 
         {/* Main card */}
@@ -537,6 +556,36 @@ export default function UploadPage() {
                     >
                       Choose a different file
                     </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Out of reports. The file they picked is still selected, so
+                after paying they press Analyse again — no re-upload. */}
+            <AnimatePresence>
+              {needsPayment && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="mt-5 rounded-2xl border border-primary-500/25 bg-primary-500/5 p-5"
+                >
+                  <p className="text-base font-bold text-gray-900 dark:text-white">
+                    You&apos;ve used your free report
+                  </p>
+                  <p className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                    Pick a pack to carry on. Your report is still selected — once
+                    payment goes through, just press Analyse again.
+                  </p>
+                  <div className="mt-4">
+                    <BuyReports
+                      compact
+                      onPurchased={() => {
+                        setNeedsPayment(false);
+                        setError("");
+                      }}
+                    />
                   </div>
                 </motion.div>
               )}

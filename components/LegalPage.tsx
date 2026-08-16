@@ -55,11 +55,6 @@ export default function LegalPage({
 
             <div className="mt-8 space-y-8">{children}</div>
 
-            <hr className="my-12 border-gray-200" />
-            <p className="text-sm text-gray-500">
-                {BUSINESS.trading} is operated by {BUSINESS.name}, {BUSINESS.city}. Questions
-                about this page: <a className="underline" href={`mailto:${BUSINESS.email}`}>{BUSINESS.email}</a>
-            </p>
         </main>
     );
 }
