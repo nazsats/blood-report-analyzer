@@ -54,27 +54,6 @@ export async function POST(req: NextRequest) {
   console.log(`[API Analyze] Starting request ${reportId}`);
 
   try {
-    const form = await req.formData() as any;
-    const files = form.getAll('file') as File[];
-    let extractedText = form.get('extractedText') as string;
-    const userAge = form.get('userAge') as string | null;
-    const userGender = form.get('userGender') as string | null;
-    const medications = form.get('medications') as string | null;
-
-    // A text-based PDF is sent as extracted text with no images attached, so
-    // text on its own is a valid submission.
-    if (files.length === 0 && !extractedText?.trim()) {
-      return NextResponse.json({ error: 'No files uploaded' }, { status: 400 });
-    }
-
-    for (const file of files) {
-      const isPDF = file.type === 'application/pdf';
-      const isImage = file.type.startsWith('image/');
-      if (!isImage && !isPDF) {
-        return NextResponse.json({ error: `File type ${file.type} not supported` }, { status: 400 });
-      }
-    }
-
     const token = req.headers.get('Authorization')?.replace('Bearer ', '');
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -98,6 +77,31 @@ export async function POST(req: NextRequest) {
         { error: `Too many reports in a short time. Please try again in ${Math.ceil(rate.retryAfter / 60)} minutes.` },
         { status: 429, headers: { 'Retry-After': String(rate.retryAfter) } },
       );
+    }
+
+    // Body parsing happens after the caller is known. Reading a multipart
+    // upload costs memory and CPU, and doing it first meant an
+    // unauthenticated request could spend both before being told no —
+    // and could not be rate limited, because rate limiting needs a uid.
+    const form = await req.formData() as any;
+    const files = form.getAll('file') as File[];
+    let extractedText = form.get('extractedText') as string;
+    const userAge = form.get('userAge') as string | null;
+    const userGender = form.get('userGender') as string | null;
+    const medications = form.get('medications') as string | null;
+
+    // A text-based PDF is sent as extracted text with no images attached, so
+    // text on its own is a valid submission.
+    if (files.length === 0 && !extractedText?.trim()) {
+      return NextResponse.json({ error: 'No files uploaded' }, { status: 400 });
+    }
+
+    for (const file of files) {
+      const isPDF = file.type === 'application/pdf';
+      const isImage = file.type.startsWith('image/');
+      if (!isImage && !isPDF) {
+        return NextResponse.json({ error: `File type ${file.type} not supported` }, { status: 400 });
+      }
     }
 
     // Fetch user profile for richer personalisation (medications, conditions)
