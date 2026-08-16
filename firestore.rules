@@ -1,10 +1,10 @@
 rules_version = '2';
 
-// BloodAI Firestore security rules.
+// Blood Lab Firestore security rules.
 //
 // The server (Firebase Admin SDK in /api routes) bypasses these rules entirely,
 // so everything the API writes keeps working. These rules only constrain the
-// browser client.
+// browser and mobile clients.
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -17,8 +17,31 @@ service cloud.firestore {
       return signedIn() && request.auth.uid == uid;
     }
 
-    // ---- users/{uid} : your own profile only -------------------------------
+    /** Fields the client must never set on itself — these decide what it pays. */
+    function touchesBilling() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+             .hasAny(['pro', 'freeUploadsUsed', 'subscriptionEnd', 'subscriptionId']);
+    }
+
+    // ---- users/{uid} : billing state, owned by the server -------------------
+    // Read is fine. Write was previously unrestricted, which meant any signed-in
+    // user could set pro:true on their own document from the client console and
+    // take unlimited paid analyses for free — the paywall is enforced by reading
+    // exactly these fields. Profile edits stay allowed; billing fields do not.
     match /users/{uid} {
+      allow read:   if isOwner(uid);
+      allow create: if isOwner(uid) && !request.resource.data.keys()
+                       .hasAny(['pro', 'freeUploadsUsed', 'subscriptionEnd', 'subscriptionId']);
+      allow update: if isOwner(uid) && !touchesBilling();
+      allow delete: if false;
+    }
+
+    // ---- mobileUsers/{uid} : profile written by the app ---------------------
+    // The mobile app stores age, blood type, medications and conditions here and
+    // the analyze route reads them for personalisation. There was no rule for
+    // this collection, so it fell through to the deny-all at the bottom and
+    // every profile read and write from the app was being rejected.
+    match /mobileUsers/{uid} {
       allow read, write: if isOwner(uid);
     }
 
@@ -26,33 +49,38 @@ service cloud.firestore {
     match /reports/{reportId} {
 
       // Fetching one document by its id: owner only.
-      // The analyze route stamps a shareId onto every report, so keying access
-      // off "has a shareId" would make every report readable to anyone who
-      // learns its id. Ownership is the only check here.
       allow get: if signedIn() && resource.data.userId == request.auth.uid;
 
-      // Running a query. Two shapes are legitimate:
-      //   - the History page   : where userId == <me>
-      //   - the public share page: where shareId == <the id in the link>
-      // The share page runs signed out, so shared documents must be listable.
+      // KNOWN EXPOSURE — the share page (app/share/[shareId]/page.tsx) queries
+      // this collection while signed out, so shared documents must be listable.
+      // Every report gets a shareId stamped on it by the analyze route, so in
+      // practice this clause makes every report in the database listable by an
+      // unauthenticated caller who queries the collection directly. These are
+      // blood test results.
       //
-      // Known trade-off: a hand-crafted query could still walk the set of
-      // shared reports. Closing that properly means giving shares their own
-      // `shares/{shareId}` collection holding a copy of the payload, rather
-      // than exposing `reports` at all.
+      // The fix is to stop the browser reading `reports` at all: move the share
+      // page onto a server route that looks the document up with the Admin SDK
+      // and returns only the fields a share needs. Then this clause becomes
+      // owner-only. Left in place for now because removing it breaks a live
+      // feature, but it should not survive a public launch.
       allow list: if (signedIn() && resource.data.userId == request.auth.uid)
                   || resource.data.shareId != null;
 
-      // Only the owner may change or remove a report, and they may not
-      // reassign it to somebody else.
       allow update: if signedIn()
                     && resource.data.userId == request.auth.uid
                     && request.resource.data.userId == resource.data.userId;
 
       allow delete: if signedIn() && resource.data.userId == request.auth.uid;
 
-      // Reports are created by the server, never by the browser.
+      // Reports are created by the server, never by a client.
       allow create: if false;
+    }
+
+    // ---- rateLimits/{bucket}:{uid} : server only ---------------------------
+    // Written by lib/rateLimit.ts through the Admin SDK. A client that could
+    // write here could reset its own counter, so it gets nothing.
+    match /rateLimits/{docId} {
+      allow read, write: if false;
     }
 
     // ---- mealLogs/{uid}_{date} : written by the server, read by the owner ---
@@ -64,6 +92,43 @@ service cloud.firestore {
         allow read: if signedIn() && logId.split('_')[0] == request.auth.uid;
         allow write: if false;
       }
+    }
+
+    // ---- weightLogs / workouts : owner-scoped app data ----------------------
+    // Both are behind Coming soon in the app today. The rules are here so the
+    // features work the day they are switched on, rather than failing silently
+    // against a deny-all that nobody remembers to update.
+    match /weightLogs/{docId} {
+      allow read, write: if signedIn() && docId.split('_')[0] == request.auth.uid;
+    }
+
+    match /workouts/{docId} {
+      allow read, write: if signedIn() && docId.split('_')[0] == request.auth.uid;
+    }
+
+    // ---- community : postStats, postVotes, postComments --------------------
+    // Reads are public because the feed is public. Writes require a signed-in
+    // user and, for a vote, that the document is keyed to that user so nobody
+    // can overwrite someone else's.
+    match /postStats/{postId} {
+      allow read: if true;
+      allow write: if false;   // counters are server-maintained
+    }
+
+    match /postCommentCounts/{postId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    match /postVotes/{voteId} {
+      allow read: if true;
+      allow write: if signedIn() && voteId.split('_')[0] == request.auth.uid;
+    }
+
+    match /postComments/{commentId} {
+      allow read: if true;
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.userId == request.auth.uid;
     }
 
     // ---- everything else is denied ----------------------------------------
