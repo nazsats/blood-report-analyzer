@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import OpenAI from 'openai';
 import { adminDb, getAdminApp } from '@/lib/firebaseAdmin';
+import { ANALYZE_LIMIT, consumeRateLimit } from '@/lib/rateLimit';
 import sharp from 'sharp';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -88,6 +89,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
     }
 
+    // Rate limit before anything expensive. A verified token is not a
+    // trusted caller: anyone can mint one by signing in, so without this a
+    // single account can loop this endpoint and bill us for every iteration.
+    const rate = await consumeRateLimit(uid, ANALYZE_LIMIT);
+    if (!rate.allowed) {
+      return NextResponse.json(
+        { error: `Too many reports in a short time. Please try again in ${Math.ceil(rate.retryAfter / 60)} minutes.` },
+        { status: 429, headers: { 'Retry-After': String(rate.retryAfter) } },
+      );
+    }
+
     // Fetch user profile for richer personalisation (medications, conditions)
     const userRef = adminDb.collection('users').doc(uid);
     let userDoc = await userRef.get();
@@ -95,14 +107,30 @@ export async function POST(req: NextRequest) {
       await userRef.set({
         freeUploadsUsed: 0,
         pro: false,
-        email: decoded.email,
+        email: decoded.email ?? null,
         createdAt: FieldValue.serverTimestamp(),
       });
       userDoc = await userRef.get();
     }
     const userData = userDoc.data() || { freeUploadsUsed: 0, pro: false };
 
-    // Pro restriction removed — all users have unlimited access
+    // Free allowance, counted server-side against the uid. The app keeps its
+    // own count for deciding which screen to show, but that lives on the
+    // device and resets on reinstall — this is the one that holds.
+    const FREE_UPLOADS = 1;
+    const used: number = userData.freeUploadsUsed ?? 0;
+    const isPro: boolean = userData.pro === true;
+
+    if (!isPro && used >= FREE_UPLOADS) {
+      return NextResponse.json(
+        {
+          error: 'free_limit_reached',
+          message: 'You have used your free report. Unlock the full analysis to continue.',
+          freeUploadsUsed: used,
+        },
+        { status: 402 },
+      );
+    }
 
     // Merge medications from form AND profile for completeness
     const profileMeds = userData.currentMedications || '';
@@ -127,7 +155,7 @@ export async function POST(req: NextRequest) {
 
       if (isImage) {
         const processedImage = await sharp(buffer)
-          .resize({ width: 2500, fit: 'inside', withoutEnlargement: true })
+          .resize({ width: 1536, fit: 'inside', withoutEnlargement: true })
           .jpeg({ quality: 95 })
           .toBuffer();
         const base64 = processedImage.toString('base64');
@@ -263,15 +291,45 @@ CRITICAL RULES:
 - Never use generic phrases like "eat a balanced diet" — always be specific to the markers
 - rootCauses and advice fields: use empty string "" for normal results`;
 
-    console.log('[API Analyze] Calling OpenAI with enhanced prompt…');
+    // Free readers get a deliberately shorter answer. It is not a worse one:
+    // it leads with what is most striking about their results, which is what
+    // makes someone want the full breakdown. Paying for depth is an easier
+    // decision than paying to remove an artificial limit.
+    //
+    // One prompt, not two. A second full medical prompt would drift out of
+    // sync with this one within a couple of edits, and a blood report is not
+    // the place to discover that the free tier is following stale rules.
+    const isPaid = userData.pro === true;
+
+    const FREE_TIER_BRIEF = `
+
+FREE TIER — LENGTH LIMIT:
+Return the same JSON shape, but keep it brief and high-signal:
+- "tests": still include EVERY marker found, with value, unit, range and status.
+  This is the part the reader came for and must never be truncated.
+- Explanations: one short sentence per abnormal marker; empty string "" for
+  normal ones.
+- "futurePredictions", "supplements", "medicationAlerts": return [] — these are
+  reserved for the full report.
+- "advice": one sentence per field, not a paragraph.
+- "summary": 2-3 sentences, warm and specific to the most notable finding.
+Be accurate and complete on the numbers, concise on the prose.`;
+
+    const finalPrompt = isPaid ? systemPrompt : systemPrompt + FREE_TIER_BRIEF;
+
+    // gpt-4.1 is cheaper than gpt-4o ($2/$8 vs $2.50/$10 per 1M) and newer.
+    // max_tokens caps the worst case rather than describing the usual one:
+    // measured output is ~2.4k, so 4000 leaves headroom for a report with an
+    // unusually long marker list without leaving an 8000-token bill exposed.
+    console.log(`[API Analyze] Calling OpenAI (${isPaid ? 'full' : 'free'} tier)…`);
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4.1',
       messages: [
-        { role: 'system', content: systemPrompt },
+        { role: 'system', content: finalPrompt },
         { role: 'user', content: userContent },
       ],
       response_format: { type: 'json_object' },
-      max_tokens: 8000,
+      max_tokens: isPaid ? 4000 : 1600,
       temperature: 0.1,
     });
 
@@ -326,6 +384,15 @@ CRITICAL RULES:
       supplements: aiResult.supplements,
       updatedAt: FieldValue.serverTimestamp(),
     });
+
+    // Spend the free allowance only now, on a report that actually completed.
+    // Counting at the start would burn someone's one free look on a blurry
+    // photo or an OpenAI timeout — a refund conversation over a free feature.
+    // Increment, rather than write used+1, so two requests racing cannot both
+    // read 0 and both write 1.
+    if (!isPro) {
+      await userRef.update({ freeUploadsUsed: FieldValue.increment(1) });
+    }
 
     const shareId = uuidv4();
     await reportRef.update({ shareId });
