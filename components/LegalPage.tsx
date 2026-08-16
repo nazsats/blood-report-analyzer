@@ -16,11 +16,11 @@ export const BUSINESS = {
     name: 'Mohammad Nazrul Ansari',
     trading: 'Blood Lab',
     email: 'dudelynft@gmail.com',
-    // TODO — Razorpay requires a full postal address and a reachable phone
-    // number on the contact page, and will check them. Replace both before
-    // submitting for activation.
-    address: '[ADD YOUR FULL POSTAL ADDRESS]',
+    address: 'Santa Cruz',
     city: 'Mumbai, Maharashtra, India',
+    // TODO — Razorpay verifies this during activation and a contact page
+    // without a reachable number is a common rejection. Fill it before
+    // submitting.
     phone: '[ADD YOUR PHONE NUMBER]',
 } as const;
 
