@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { db } from "@/lib/firebaseClient";
-import { collection, query, where, orderBy, onSnapshot, deleteDoc, doc, QueryConstraint } from "firebase/firestore";
+import { collection, query, where, orderBy, limit, onSnapshot, deleteDoc, doc, QueryConstraint } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import {
   Loader2, FileText, TrendingUp, ChevronRight,
@@ -38,6 +38,8 @@ function scoreBg(s: number) {
   return "bg-red-500/10 border-red-500/20";
 }
 
+const HISTORY_PAGE_SIZE = 50;
+
 export default function HistoryPage() {
   const { user, loading: authLoading } = useAuth();
   const [reports, setReports] = useState<any[]>([]);
@@ -54,6 +56,12 @@ export default function HistoryPage() {
         where("userId", "==", user.uid),
       ];
       if (withOrder) constraints.push(orderBy("createdAt", "desc"));
+      // Firestore bills per document read, and a report document holds a whole
+      // analysis — markers, predictions, diet plan — so it is several KB, not a
+      // row. Unbounded, this re-downloads a user's entire history on every
+      // visit to the page, and the bill grows with how loyal they are. Fifty is
+      // far more than anyone accumulates in practice.
+      constraints.push(limit(HISTORY_PAGE_SIZE));
       const q = query(collection(db, "reports"), ...constraints);
 
       unsub = onSnapshot(q, (snapshot) => {

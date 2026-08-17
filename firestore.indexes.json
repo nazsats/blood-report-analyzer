@@ -1,1 +1,14 @@
-{"indexes":[],"fieldOverrides":[]}
+{
+  "indexes": [
+    {
+      "//": "History and the profile page both query reports by owner, newest first. Firestore needs a composite index for equality + orderBy on different fields. Without it the query throws, and both pages fall back to fetching unordered and sorting in the browser — which works, but every first load pays a failed round-trip, and the sort happens on data we should not have had to download in that order.",
+      "collectionGroup": "reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "userId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

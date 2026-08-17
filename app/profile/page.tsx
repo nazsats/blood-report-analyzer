@@ -3,7 +3,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
-import { doc, getDoc, setDoc, collection, query, where, orderBy, getDocs, QueryConstraint } from "firebase/firestore";
+import { doc, getDoc, setDoc, collection, query, where, orderBy, limit, getDocs, getCountFromServer, QueryConstraint } from "firebase/firestore";
 import { db, storage } from "@/lib/firebaseClient";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { motion, AnimatePresence } from "framer-motion";
@@ -64,6 +64,10 @@ const RISK_COLORS: Record<string, string> = {
   critical: "text-red-500",
 };
 
+/** Recent reports used for the score summary. The lifetime total is counted
+ *  separately, so this bound does not change the number a user sees there. */
+const PROFILE_REPORT_SAMPLE = 20;
+
 export default function ProfilePage() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -96,7 +100,8 @@ export default function ProfilePage() {
           const q = query(
             collection(db, "reports"),
             where("userId", "==", user.uid),
-            orderBy("createdAt", "desc")
+            orderBy("createdAt", "desc"),
+            limit(PROFILE_REPORT_SAMPLE)
           );
           const snap = await getDocs(q);
           reports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -105,7 +110,8 @@ export default function ProfilePage() {
             console.warn("Composite index not ready, falling back to client-side sort");
             const fallbackQ = query(
               collection(db, "reports"),
-              where("userId", "==", user.uid)
+              where("userId", "==", user.uid),
+              limit(PROFILE_REPORT_SAMPLE)
             );
             const snap = await getDocs(fallbackQ);
             reports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -120,11 +126,28 @@ export default function ProfilePage() {
         }
         setRecentReports(reports.slice(0, 3));
 
+        // The lifetime total is a count, so ask Firestore to count rather than
+        // downloading every report to call .length on the array. A report
+        // document carries a whole analysis, so counting by downloading gets
+        // more expensive for exactly the users who use the product most.
+        // getCountFromServer bills roughly one read per thousand documents.
+        let totalReports = reports.length;
+        try {
+          const countSnap = await getCountFromServer(
+            query(collection(db, "reports"), where("userId", "==", user.uid))
+          );
+          totalReports = countSnap.data().count;
+        } catch (countErr) {
+          // Fall back to the length of what we already fetched. It under-counts
+          // past the page size, which is better than showing nothing.
+          console.warn("Count query failed, using fetched length", countErr);
+        }
+
         if (reports.length > 0) {
           const completed = reports.filter(r => r.status === "complete" && r.overallScore);
           const scores = completed.map(r => r.overallScore as number);
           setStats({
-            totalReports: reports.length,
+            totalReports,
             avgScore: scores.length ? Math.round((scores.reduce((a, b) => a + b, 0) / scores.length) * 10) / 10 : 0,
             bestScore: scores.length ? Math.max(...scores) : 0,
             latestRisk: completed[0]?.riskLevel || "—",
