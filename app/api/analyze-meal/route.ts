@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { adminDb, getAdminApp } from '@/lib/firebaseAdmin';
 import { FieldValue } from 'firebase-admin/firestore';
 import sharp from 'sharp';
+import { consumeRateLimit, MEAL_LIMIT } from '@/lib/rateLimit';
 
 // See the analyze route: without this the platform default kills the function
 // mid-analysis. 60 is the Hobby-plan ceiling; Pro allows up to 300.
@@ -61,6 +62,14 @@ export async function POST(req: NextRequest) {
     } catch (e: any) {
       console.error('[analyze-meal] Token verify error:', e.message);
       return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    const gate = await consumeRateLimit(uid, MEAL_LIMIT);
+    if (!gate.allowed) {
+      return NextResponse.json(
+        { error: 'That is a lot of meals. Please try again shortly.' },
+        { status: 429, headers: { 'Retry-After': String(gate.retryAfter) } },
+      );
     }
 
     // Process image

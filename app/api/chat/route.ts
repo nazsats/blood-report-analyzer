@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getOpenAI } from '@/lib/openaiClient';
 import { getAdminApp } from '@/lib/firebaseAdmin';
+import { consumeRateLimit, CHAT_LIMIT } from '@/lib/rateLimit';
 
 // See the analyze route: without this the platform default can cut off a reply
 // that is still generating. 60 is the Hobby-plan ceiling; Pro allows up to 300.
@@ -9,16 +10,74 @@ export const maxDuration = 60;
 export const runtime = 'nodejs';
 
 
+/** Enough for a real conversation, far short of a prompt-stuffing budget. */
+const MAX_MESSAGES = 20;
+const MAX_CHARS_PER_MESSAGE = 2000;
+
 export async function POST(req: NextRequest) {
   try {
+    // This route had no auth of any kind. Two separate problems, both live:
+    //
+    //  1. It was an open OpenAI proxy. Anyone could POST here from anywhere and
+    //     spend our tokens, with no signed-in user to attribute the cost to.
+    //  2. Worse, it read any report by id through the Admin SDK, which bypasses
+    //     Firestore rules, and put the whole thing in the system prompt. Anyone
+    //     holding a report id could ask this endpoint to read out somebody
+    //     else's blood results — the same exposure the share page was locked
+    //     down to prevent, through a different door.
+    const token = req.headers.get('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return NextResponse.json({ error: 'Please sign in to use the assistant.' }, { status: 401 });
+    }
+
+    let uid: string;
+    try {
+      const decoded = await getAdminApp().auth().verifyIdToken(token);
+      uid = decoded.uid;
+    } catch {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    const gate = await consumeRateLimit(uid, CHAT_LIMIT);
+    if (!gate.allowed) {
+      return NextResponse.json(
+        { error: 'You have sent a lot of messages. Please try again shortly.' },
+        { status: 429, headers: { 'Retry-After': String(gate.retryAfter) } },
+      );
+    }
+
     const { reportId, messages } = await req.json();
+
+    if (!Array.isArray(messages)) {
+      return NextResponse.json({ error: 'No messages provided.' }, { status: 400 });
+    }
+
+    // The history comes from the client, so its size is the caller's choice
+    // until we make it ours. Keep the most recent turns — that is the context
+    // that matters — and trim each one.
+    // `as const` on the role matters: without it TypeScript widens the ternary
+    // to `string`, which matches none of the SDK's message overloads. Anything
+    // that is not 'assistant' becomes 'user', so a caller cannot inject a
+    // 'system' turn and rewrite the instructions above.
+    const trimmed = messages.slice(-MAX_MESSAGES).map((m: any) => ({
+      role: (m?.role === 'assistant' ? 'assistant' : 'user') as 'assistant' | 'user',
+      content: String(m?.content ?? '').slice(0, MAX_CHARS_PER_MESSAGE),
+    }));
 
     // Load full report data from Firestore for rich context
     let reportData: any = {};
     if (reportId) {
       const reportDoc = await getAdminApp().firestore().collection('reports').doc(reportId).get();
       if (reportDoc.exists) {
-        reportData = reportDoc.data() || {};
+        const data = reportDoc.data() || {};
+        // The ownership check the Admin SDK does not do for us. Silently
+        // ignoring someone else's report rather than 403-ing also avoids
+        // confirming to a prober that a given report id exists.
+        if (data.userId === uid) {
+          reportData = data;
+        } else {
+          console.warn('[chat] report access denied', { uid, reportId });
+        }
       }
     }
 
@@ -89,7 +148,7 @@ CONVERSATION GUIDELINES:
       model: 'gpt-4o-mini',
       messages: [
         { role: 'system', content: systemPrompt },
-        ...messages.map((m: any) => ({ role: m.role, content: m.content })),
+        ...trimmed,
       ],
       max_tokens: 500,
       temperature: 0.5,

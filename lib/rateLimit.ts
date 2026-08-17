@@ -104,3 +104,25 @@ export const CHAT_LIMIT: RateLimitOptions = {
     windowMs: 60 * 60 * 1000,
     bucket: 'chat',
 };
+
+/**
+ * Meal photos go to gpt-4o with vision, which is the most expensive call in the
+ * product per request. Nobody photographs more than a handful of meals in an
+ * hour, so this is invisible to real use and caps what a script can spend.
+ */
+export const MEAL_LIMIT: RateLimitOptions = {
+    limit: 15,
+    windowMs: 60 * 60 * 1000,
+    bucket: 'meal',
+};
+
+/**
+ * Order creation costs no AI money, but each call writes a Firestore document
+ * and an order at Razorpay. Twenty an hour is far more than anyone buying a
+ * ₹25 report needs, and stops a loop from filling the orders collection.
+ */
+export const ORDER_LIMIT: RateLimitOptions = {
+    limit: 20,
+    windowMs: 60 * 60 * 1000,
+    bucket: 'order',
+};

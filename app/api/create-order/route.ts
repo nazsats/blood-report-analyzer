@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import { getRazorpay } from '@/lib/razorpayClient';
 import { getAdminApp, adminDb } from '@/lib/firebaseAdmin';
 import { getPack } from '@/lib/packs';
+import { consumeRateLimit, ORDER_LIMIT } from '@/lib/rateLimit';
 
 /**
  * Start a one-time payment for a pack of reports.
@@ -31,6 +32,14 @@ export async function POST(req: NextRequest) {
             uid = decoded.uid;
         } catch {
             return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+        }
+
+        const gate = await consumeRateLimit(uid, ORDER_LIMIT);
+        if (!gate.allowed) {
+            return NextResponse.json(
+                { error: 'Too many attempts. Please wait a moment and try again.' },
+                { status: 429, headers: { 'Retry-After': String(gate.retryAfter) } },
+            );
         }
 
         const { packId } = await req.json().catch(() => ({ packId: null }));
