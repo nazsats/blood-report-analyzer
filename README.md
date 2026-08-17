@@ -9,10 +9,6 @@ result, what might be causing anything unusual, and what you can actually do abo
 
 ![Blood Lab home page](docs/screenshots/landing-hero.png)
 
-> **Note:** the screenshots below were taken before the August 2026 redesign and
-> still show the previous violet theme and the old name. They are accurate about
-> what each screen does, not about how it currently looks.
-
 ---
 
 ## The problem, in one paragraph
@@ -34,7 +30,7 @@ Three steps, about a minute or two.
 | | Step | What happens |
 |---|---|---|
 | **1** | **Upload** | Drop in a PDF or take a photo of your report. Any lab, any format. |
-| **2** | **AI reads it** | GPT-4o Vision pulls out every test on the page — the name, your value, the unit, and the normal range — and marks which ones are high, low, or fine. |
+| **2** | **AI reads it** | GPT-4.1 pulls out every test on the page — the name, your value, the unit, and the normal range — and marks which ones are high, low, or fine. |
 | **3** | **You get a plan** | A summary in plain English, plus food, lifestyle, and supplement suggestions tied to your specific numbers. |
 
 ---
@@ -77,6 +73,11 @@ two of them out of range: haemoglobin low at 12.5 g/dL and packed cell volume hi
 ### 1. Drop in your report
 
 ![Upload screen](docs/screenshots/upload.png)
+
+> **Note** — the results screenshots below were taken before the rename and the
+> light theme, so they show the old violet design and the previous wordmark. The
+> analysis itself is unchanged. Regenerate them with
+> `node scripts/screenshots.mjs --login`.
 
 ### 2. Get the summary
 
@@ -122,6 +123,20 @@ If you list what you take, Blood Lab flags known interactions with your lab valu
 
 ![Home page, full](docs/screenshots/landing-full.png)
 
+### Both themes
+
+The app opens light, matching the Android app. The toggle in the header switches
+to a teal dark theme rather than the usual near-black — a medical product reads
+better warm than clinical.
+
+| Light | Dark |
+|---|---|
+| ![Light theme](docs/screenshots/landing-hero.png) | ![Dark theme](docs/screenshots/landing-dark.png) |
+
+### Pricing
+
+![Pricing page](docs/screenshots/pricing.png)
+
 ---
 
 ## Pricing
@@ -150,18 +165,100 @@ Some things deliberately never touch the browser:
   returning an allowlist of fields. The browser never queries the reports
   collection, which is what lets the security rules stay owner-only.
 
+## Architecture
+
+```mermaid
+flowchart TD
+    A[Browser] -->|PDF or photo| B[pdf.js / canvas<br/>downscale + compress]
+    B -->|multipart, under 4 MB| C["/api/analyze"]
+
+    C --> D{Firebase ID token<br/>valid?}
+    D -->|no| D1[401]
+    D -->|yes| E{Under 6 per hour?}
+    E -->|no| E1[429]
+    E -->|yes| F{Pro, credit,<br/>or free report?}
+    F -->|none left| F1[402 → paywall]
+    F -->|yes| G[OpenAI gpt-4.1]
+
+    G --> H[(Firestore<br/>reports)]
+    H --> I[Results page]
+    I -->|follow-up questions| J["/api/chat<br/>gpt-4o-mini"]
+    J -->|ownership checked| H
+
+    style F1 fill:#0F766E,color:#fff
+    style G fill:#047857,color:#fff
+```
+
+The entitlement check sits **before** the OpenAI call and the credit is spent
+**after** the report completes. That ordering is the whole trick: a blurry photo
+that fails to parse costs the user nothing, and nobody reaches the model without
+something to spend.
+
+## How a payment works
+
+```mermaid
+sequenceDiagram
+    participant U as Browser
+    participant A as /api/create-order
+    participant R as Razorpay
+    participant V as /api/verify-payment
+    participant W as /api/razorpay-webhook
+    participant DB as Firestore
+
+    U->>A: packId (never an amount)
+    A->>R: create order, amount from lib/packs.ts
+    A->>DB: orders/{id} status=created
+    A-->>U: orderId + public key
+
+    U->>R: pays by UPI / card / netbanking
+
+    alt browser survives
+        R-->>U: signature
+        U->>V: signature
+        V->>V: HMAC + payments.fetch + amount match
+        V->>DB: txn: status=paid, credits += n
+    else browser closes (common on UPI)
+        R->>W: payment.captured, server to server
+        W->>W: HMAC over the raw body
+        W->>DB: txn: status=paid, credits += n
+    end
+```
+
+Both paths converge on one transaction keyed by order id, so whichever arrives
+first grants the credits and the other is a no-op. The webhook exists because
+UPI users routinely approve in their bank app and never return to the tab —
+without it, those payments are taken and never credited.
+
 ## Built with
 
-| Part | What we use |
-|---|---|
-| Website | Next.js 16, React 19, TypeScript, Tailwind CSS |
-| Look and feel | Framer Motion (animation), Recharts (graphs), Lucide (icons) |
-| The AI | OpenAI GPT-4o Vision |
-| Accounts | Firebase Authentication |
-| Database | Cloud Firestore |
-| Reading PDFs | pdf.js in the browser, pdf-parse on the server |
-| Images | Sharp |
-| Payments | Razorpay |
+| Part | What we use | Why this one |
+|---|---|---|
+| Framework | Next.js 16, React 19, TypeScript | API routes and pages in one deploy — no separate backend to run for a solo project |
+| Styling | Tailwind CSS v4, next-themes | v4's `@theme` tokens mean the palette is defined once and both themes read from it |
+| Motion & charts | Framer Motion, Recharts, Lucide | — |
+| Analysis model | OpenAI **gpt-4.1** | ~₹2.14 per report against a ₹25 price. gpt-4o cost more for no measurable gain on lab tables |
+| Chat model | **gpt-4o-mini** | Follow-up questions are cheap and frequent; the report is already parsed |
+| Auth | Firebase Authentication | Anonymous sign-in lets the mobile app scan before registering, then upgrades the same uid |
+| Database | Cloud Firestore | Security rules push authorisation into the database instead of trusting each route |
+| PDFs | pdf.js (browser), pdf-parse (server) | Text PDFs send a few KB of text; only scans pay for image tokens |
+| Images | Sharp, canvas | Client-side downscale keeps uploads under Vercel's 4.5 MB body limit |
+| Payments | Razorpay Orders API | One-time purchase. A subscription would bill monthly for something bought once |
+| Hosting | Vercel | 60s function ceiling on Hobby, which is what caps analysis time |
+
+### Trade-offs worth knowing
+
+- **Serverless has no shared memory**, so rate limiting is a Firestore
+  transaction rather than an in-process counter. Slower, but an in-memory
+  counter on a platform that spins up fresh instances counts nothing.
+- **The 60s function limit** is the real constraint on analysis. It is why
+  scanned PDFs are capped at 4 pages and the OpenAI client times out at 55s —
+  the caller gets a readable error instead of a platform 504.
+- **Firestore bills per document read**, and a report document holds an entire
+  analysis. History and profile are therefore bounded queries, and the profile
+  total comes from a count aggregate rather than downloading every report.
+- **Firebase Admin bypasses security rules by design.** Every route using it
+  has to check ownership itself. Missing that check on `/api/chat` is exactly
+  how a data leak got in — see the git history.
 
 ---
 
@@ -206,6 +303,11 @@ OPENAI_API_KEY=sk-proj-your_key
 RAZORPAY_KEY_ID=your_razorpay_id
 RAZORPAY_KEY_SECRET=your_razorpay_secret
 NEXT_PUBLIC_RAZORPAY_KEY_ID=your_razorpay_id
+
+# Razorpay Dashboard > Settings > Webhooks. This is the signing secret shown
+# when you create the webhook — NOT the API key secret above. Without it,
+# payments where the user closes the tab (common on UPI) are never credited.
+RAZORPAY_WEBHOOK_SECRET=your_webhook_signing_secret
 ```
 
 > **Easier alternative for the server keys:** instead of the two `FIREBASE_ADMIN_*`
@@ -273,7 +375,8 @@ docs/screenshots/         # The images in this README
 
 ## The API
 
-Both endpoints need a Firebase ID token in an `Authorization: Bearer <token>` header.
+Every endpoint needs a Firebase ID token in an `Authorization: Bearer <token>` header,
+except the Razorpay webhook, which is authenticated by signature instead.
 
 ### `POST /api/analyze`
 
@@ -287,6 +390,35 @@ Send a blood report as `multipart/form-data`.
 
 Returns `{ success, reportId, shareUrl }`. The full analysis is written to the
 `reports/{reportId}` document in Firestore, which the results page listens to live.
+
+Returns **402** with `{ error: "payment_required" }` when the free report is used
+up and no credits remain. The upload page treats that as a prompt to buy rather
+than an error, and keeps the selected file so nothing is re-uploaded after paying.
+
+### `POST /api/chat`
+
+Follow-up questions about a report you own.
+
+| Field | Required | Notes |
+|---|---|---|
+| `messages` | yes | Conversation so far. Capped server-side at the last 20 turns, 2000 chars each. |
+| `reportId` | no | Loaded into context **only if the report belongs to you**. |
+
+40 messages per hour per user.
+
+### `POST /api/create-order` · `POST /api/verify-payment`
+
+Buying reports. `create-order` takes `{ packId }` — never an amount — and returns
+an order id plus the publishable key. `verify-payment` takes what Razorpay
+Checkout hands back and grants credits only after the signature, the payment
+status at Razorpay, and the amount all check out, inside a transaction that
+refuses to credit the same order twice.
+
+### `POST /api/razorpay-webhook`
+
+Called by Razorpay, not by you. Authenticated by an HMAC over the raw request
+body using `RAZORPAY_WEBHOOK_SECRET`, since Razorpay's servers have no Firebase
+token to send.
 
 ### `POST /api/analyze-meal`
 
