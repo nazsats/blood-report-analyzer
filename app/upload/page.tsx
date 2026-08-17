@@ -615,7 +615,7 @@ export default function UploadPage() {
           transition={{ delay: 0.6 }}
           className="mt-8 flex flex-wrap justify-center gap-4 text-xs text-gray-600 dark:text-gray-400"
         >
-          {["🔒 Encrypted in transit & at rest", "🔐 Private to your account", "⚡ Powered by GPT-4o Vision", "🗑️ Delete your reports anytime"].map((t) => (
+          {["🔒 Encrypted in transit & at rest", "🔐 Private to your account", "⚡ Powered by GPT-4.1", "🗑️ Delete your reports anytime"].map((t) => (
             <span key={t}>{t}</span>
           ))}
         </motion.div>

@@ -73,7 +73,7 @@ export default function Header() {
                 <Activity className="w-5 h-5" />
               </motion.div>
               <span className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">
-                Blood<span className="text-primary-600 dark:text-primary-400">AI</span>
+                Blood<span className="text-primary-600 dark:text-primary-400">Lab</span>
               </span>
             </div>
 

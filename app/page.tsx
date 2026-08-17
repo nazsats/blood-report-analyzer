@@ -88,7 +88,7 @@ export default function Home() {
 
   const steps = [
     { num: "01", title: "Upload Your Report", desc: "Drag and drop your PDF or image blood report. We support all standard lab formats.", icon: FileText },
-    { num: "02", title: "AI Analyzes Instantly", desc: "Our GPT-4 powered engine reads every marker, flags abnormal values, and cross-references medical databases.", icon: Brain },
+    { num: "02", title: "AI Analyzes Instantly", desc: "Our GPT-4.1 powered engine reads every marker, flags abnormal values, and cross-references medical databases.", icon: Brain },
     { num: "03", title: "Get Your Health Plan", desc: "Receive a personalized wellness protocol with diet, exercise, and supplement recommendations.", icon: Sparkles },
   ];
 
@@ -110,7 +110,7 @@ export default function Home() {
           className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary-500/10 border border-primary-500/25 text-primary-700 dark:text-primary-300 text-sm font-medium mb-8"
         >
           <Zap className="w-3.5 h-3.5 fill-current text-primary-600 dark:text-primary-400" />
-          Powered by GPT-4o Vision
+          Powered by GPT-4.1
         </motion.div>
 
         <motion.h1 {...fadeUp} {...stagger(1)}
@@ -172,7 +172,7 @@ export default function Home() {
             { icon: Users, text: "Free to try, no card required" },
             { icon: ShieldCheck, text: "Encrypted in transit & at rest" },
             { icon: Award, text: "Reads reports from any lab" },
-            { icon: Zap, text: "Powered by GPT-4o Vision" },
+            { icon: Zap, text: "Powered by GPT-4.1" },
           ].map((item, i) => (
             <div key={i} className="flex items-center gap-2">
               <item.icon className="w-4 h-4 text-primary-600 dark:text-primary-400" />
@@ -393,7 +393,7 @@ export default function Home() {
             <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-primary-600 to-secondary-400 flex items-center justify-center">
               <Activity className="w-4 h-4 text-gray-900 dark:text-white" />
             </div>
-            <span className="font-bold text-gray-900 dark:text-white">Blood<span className="text-primary-600 dark:text-primary-400">AI</span></span>
+            <span className="font-bold text-gray-900 dark:text-white">Blood<span className="text-primary-600 dark:text-primary-400">Lab</span></span>
           </div>
           <p className="text-gray-500 dark:text-gray-400 text-sm text-center">
             © 2025 Blood Lab. For informational purposes only — not medical advice.
