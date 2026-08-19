@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { auth } from '@/lib/firebaseClient';
 import { PACKS, rupees, type PackId } from '@/lib/packs';
+import { notifyBalanceChanged } from '@/lib/balance';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Check } from 'lucide-react';
 
 /**
  * Buying reports.
@@ -21,6 +24,37 @@ declare global {
 }
 
 const CHECKOUT_SRC = 'https://checkout.razorpay.com/v1/checkout.js';
+
+/**
+ * A burst of confetti, imported only when someone actually pays.
+ *
+ * canvas-confetti is ~7 KB and completely useless to the majority of visitors
+ * who never reach a checkout, so it is dynamically imported at the moment of
+ * success rather than bundled into the page.
+ *
+ * Respects prefers-reduced-motion: a full-screen particle burst is genuinely
+ * unpleasant for some people, and a medical site has more reason than most to
+ * take that seriously.
+ */
+async function celebrate() {
+    if (typeof window === 'undefined') return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+
+    try {
+        const confetti = (await import('canvas-confetti')).default;
+        const teal = ['#0F766E', '#14B8A6', '#2dd4bf', '#047857', '#5eead4'];
+
+        // Two bursts angled in from the edges rather than one from the centre:
+        // it reads as celebratory instead of as an error animation.
+        confetti({ particleCount: 60, spread: 70, origin: { x: 0.15, y: 0.65 }, angle: 60, colors: teal, disableForReducedMotion: true });
+        confetti({ particleCount: 60, spread: 70, origin: { x: 0.85, y: 0.65 }, angle: 120, colors: teal, disableForReducedMotion: true });
+        setTimeout(() => {
+            confetti({ particleCount: 45, spread: 100, origin: { y: 0.5 }, colors: teal, disableForReducedMotion: true });
+        }, 220);
+    } catch {
+        // Confetti failing is not worth a broken payment confirmation.
+    }
+}
 
 function loadCheckout(): Promise<void> {
     if (typeof window === 'undefined') return Promise.resolve();
@@ -53,6 +87,8 @@ export default function BuyReports({
 }) {
     const [busy, setBusy] = useState<PackId | null>(null);
     const [error, setError] = useState<string | null>(null);
+    /** Credits just granted. Non-null means show the celebration. */
+    const [justBought, setJustBought] = useState<number | null>(null);
 
     const buy = async (packId: PackId) => {
         setError(null);
@@ -130,7 +166,26 @@ export default function BuyReports({
                         return;
                     }
                     setBusy(null);
-                    onPurchased?.(result.creditsAdded);
+
+                    // Paying for something should feel like it landed. This is
+                    // the one moment in the flow where the user has taken a
+                    // risk on us, and a silent state change reads as "did that
+                    // work?" — which is the feeling that stops a second
+                    // purchase.
+                    const added = result.creditsAdded ?? 0;
+                    setJustBought(added);
+                    void celebrate();
+
+                    // Tell the header pill to re-read, so the number ticks up
+                    // in the corner at the same moment.
+                    notifyBalanceChanged();
+
+                    // Long enough to register, short enough not to be in the
+                    // way of what they came to do.
+                    setTimeout(() => {
+                        setJustBought(null);
+                        onPurchased?.(added);
+                    }, 2600);
                 },
                 modal: {
                     // Without this the button stays spinning after someone
@@ -156,6 +211,47 @@ export default function BuyReports({
     };
 
     const packs = [PACKS.single, PACKS.triple];
+
+    // While the celebration is on screen the pack buttons are replaced rather
+    // than left underneath it — the purchase is done, and offering to buy again
+    // in the same breath undercuts the moment.
+    if (justBought !== null) {
+        return (
+            <div className={compact ? '' : 'mx-auto max-w-lg'}>
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.94, y: 8 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+                    className="rounded-2xl border border-primary-500/30 bg-primary-500/10 p-6 text-center"
+                >
+                    <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.1, type: 'spring', stiffness: 300, damping: 14 }}
+                        className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-primary-600 text-white"
+                    >
+                        <Check className="h-7 w-7" strokeWidth={3} />
+                    </motion.div>
+
+                    <p className="text-xl font-extrabold tracking-tight text-gray-900 dark:text-white">
+                        {justBought === 1 ? 'One report added' : `${justBought} reports added`}
+                    </p>
+                    <p className="mt-1.5 text-sm text-gray-600 dark:text-gray-400">
+                        Thank you — that genuinely helps keep this running.
+                        Your analysis is starting now.
+                    </p>
+
+                    <motion.div
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ duration: 2.4, ease: 'linear' }}
+                        style={{ transformOrigin: 'left' }}
+                        className="mt-5 h-1 rounded-full bg-primary-600/70"
+                    />
+                </motion.div>
+            </div>
+        );
+    }
 
     return (
         <div className={compact ? '' : 'mx-auto max-w-lg'}>

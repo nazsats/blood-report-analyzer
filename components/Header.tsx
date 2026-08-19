@@ -2,6 +2,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
+import CreditPill from "@/components/CreditPill";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
@@ -93,6 +94,9 @@ export default function Header() {
 
             {/* Desktop Right Actions */}
             <div className="hidden md:flex items-center gap-2">
+              {/* Reports remaining. Renders nothing when signed out. */}
+              <CreditPill />
+
               {/* Theme Toggle */}
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -136,6 +140,10 @@ export default function Header() {
 
             {/* Mobile Menu Button */}
             <div className="md:hidden flex items-center gap-2">
+              {/* Also on mobile, where most of the traffic is — a balance you
+                  only see on desktop is a balance most users never see. */}
+              <CreditPill />
+
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="p-2 rounded-xl text-gray-600 dark:text-gray-400 hover:text-white hover:bg-white/8 transition-all"

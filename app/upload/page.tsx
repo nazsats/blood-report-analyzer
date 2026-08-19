@@ -2,7 +2,7 @@
 "use client";
 
 import BuyReports from "@/components/BuyReports";
-import ReportBalance from "@/components/ReportBalance";
+import { notifyBalanceChanged } from "@/lib/balance";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { auth } from "@/lib/firebaseClient";
@@ -256,6 +256,11 @@ export default function UploadPage() {
         headers: { Authorization: `Bearer ${idToken}` },
       });
 
+      // A finished analysis spends an entitlement, so the header count is now
+      // out of date. Fire regardless of outcome below — cheap, and being wrong
+      // in the user's favour is worse than one extra fetch.
+      if (res.ok) notifyBalanceChanged();
+
       if (res.status === 402) {
         // Out of free reports. Show the packs instead of an error: the upload
         // was fine, the account simply has nothing left to spend.
@@ -374,12 +379,6 @@ export default function UploadPage() {
             Supports PDF, JPG, and PNG · Usually takes a minute or two
           </motion.p>
 
-          {/* What you have left, before you pick a file rather than after —
-              finding out you are out of reports at the end of an upload is the
-              worst moment to learn it. */}
-          <div className="mt-5">
-            <ReportBalance />
-          </div>
         </div>
 
         {/* Main card */}
