@@ -1,8 +1,24 @@
 // lib/firebaseClient.ts
 import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
+
+/**
+ * Firebase app and auth. Deliberately no Firestore or Storage.
+ *
+ * This file used to also create `db` and `storage` at module scope. Because
+ * every page needs auth — the header alone imports it — that meant the entire
+ * Firestore and Storage SDKs were pulled into the first-load bundle of every
+ * single route. 465 KB of database client was downloading on the homepage, a
+ * static marketing page that issues no queries at all.
+ *
+ * A getter would not have helped: a top-level `import 'firebase/firestore'`
+ * makes the bundler include it regardless of whether anything calls it. The
+ * import itself had to move, so Firestore now lives in lib/firebaseDb.ts and
+ * only the five files that actually query the database pull it in.
+ *
+ * If you need the database, import from '@/lib/firebaseDb'. Adding a Firestore
+ * import back into this file silently undoes the split.
+ */
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -22,14 +38,6 @@ if (missingVars.length > 0 && typeof window !== 'undefined') {
   console.error('❌ Firebase Client Error: Missing environment variables:', missingVars);
 }
 
-let app: FirebaseApp;
-if (!getApps().length) {
-  console.log('🚀 Initializing Firebase App...');
-  app = initializeApp(firebaseConfig);
-} else {
-  app = getApps()[0];
-}
+export const app: FirebaseApp = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
 export const auth: Auth = getAuth(app);
-export const db: Firestore = getFirestore(app);
-export const storage: FirebaseStorage = getStorage(app);

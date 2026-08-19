@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
 import Link from 'next/link';
-import { auth, db } from '@/lib/firebaseClient';
+import { auth } from '@/lib/firebaseClient';
+import { db } from '@/lib/firebaseDb';
 import { FREE_REPORTS } from '@/lib/packs';
 
 /**

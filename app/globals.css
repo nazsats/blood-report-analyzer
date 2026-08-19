@@ -1,5 +1,21 @@
 @import "tailwindcss";
 
+/**
+ * Make `dark:` follow the .dark class instead of the operating system.
+ *
+ * Tailwind v3 read `darkMode: "class"` from tailwind.config.js. v4 is
+ * CSS-first and defaults `dark:` to `prefers-color-scheme`, so without this
+ * line every dark: utility in the app obeys the visitor's OS setting and
+ * ignores the theme toggle entirely — clicking Light on a machine set to dark
+ * changed the class on <html> and nothing else moved.
+ *
+ * The old `darkMode: "class"` is still sitting in tailwind.config.js.bak,
+ * which Tailwind does not read, so the setting looked present while doing
+ * nothing. next-themes is configured with attribute="class", and this is the
+ * half that has to agree with it.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
 
 @theme {
     /* Primary — Deep Violet */

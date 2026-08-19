@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { db } from "@/lib/firebaseClient";
+import { db } from "@/lib/firebaseDb";
 import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -83,7 +83,7 @@ interface Report {
   overallScore?: number;
   riskLevel?: "low" | "moderate" | "high" | "critical";
   tests: Test[];
-  status: "processing" | "complete" | "error";
+  status: "processing" | "partial" | "complete" | "error";
   healthGoals?: string[];
   nutrition?: Nutrition;
   lifestyle?: Lifestyle;
@@ -220,6 +220,13 @@ export default function ResultsPage() {
   }
 
   const { status, summary, recommendation, overallScore, tests = [], fileName, nutrition, lifestyle, supplements, healthGoals, futurePredictions = [], medicationAlerts = [], riskLevel } = report;
+
+  // 'partial' means the marker breakdown has landed and the action plan is
+  // still generating. That is the whole point of splitting the two calls: the
+  // numbers are what the reader is anxious about, so they should not wait
+  // behind the diet advice.
+  const hasCore = status === "partial" || status === "complete";
+  const planPending = status === "partial";
   const abnormalTests = tests.filter(t => t.flag !== "normal");
   const score = overallScore ?? 0;
 
@@ -314,7 +321,7 @@ export default function ResultsPage() {
         </motion.div>
 
         {/* ── Health Score Hero ──────────────────────────────────────── */}
-        {status === "complete" && overallScore && (
+        {hasCore && overallScore && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
             className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
             {/* Score */}
@@ -342,13 +349,24 @@ export default function ResultsPage() {
 
         {/* ── Status Alerts ──────────────────────────────────────────── */}
         <AnimatePresence>
-          {status === "processing" && (
+          {(status === "processing" || planPending) && (
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }}
               className="flex items-center gap-4 p-5 glass-card border border-amber-500/20 rounded-2xl mb-8 bg-amber-500/5">
               <div className="w-10 h-10 rounded-full border-2 border-amber-500/40 border-t-amber-400 animate-spin shrink-0" />
               <div>
-                <p className="font-semibold text-amber-200">AI is analysing your report…</p>
-                <p className="text-sm text-amber-400/70">This usually takes a minute or two ✨</p>
+                {/* Two different waits, and telling them apart matters. During
+                    'processing' there is nothing on screen yet. During
+                    'partial' the reader is already looking at their markers,
+                    so saying "analysing your report" would be untrue and would
+                    imply the numbers on the page are provisional. */}
+                <p className="font-semibold text-amber-700 dark:text-amber-200">
+                  {planPending ? "Building your plan…" : "Reading your report…"}
+                </p>
+                <p className="text-sm text-amber-700/70 dark:text-amber-400/70">
+                  {planPending
+                    ? "Your results are ready below. Diet, lifestyle and predictions are still coming."
+                    : "Usually about 20 seconds ✨"}
+                </p>
               </div>
             </motion.div>
           )}
@@ -369,7 +387,7 @@ export default function ResultsPage() {
         </AnimatePresence>
 
         {/* ── Tabs ──────────────────────────────────────────────────── */}
-        {status === "complete" && (
+        {hasCore && (
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
             className="flex gap-2 flex-wrap mb-8 p-1.5 glass-card border border-gray-200 dark:border-white/8 rounded-2xl">
             {TABS.map(({ id, label, emoji }) => {
@@ -394,7 +412,7 @@ export default function ResultsPage() {
         <AnimatePresence mode="wait">
 
           {/* SUMMARY */}
-          {status === "complete" && activeSection === "summary" && (
+          {hasCore && activeSection === "summary" && (
             <motion.section key="summary" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }} className="space-y-6">
 
@@ -503,7 +521,7 @@ export default function ResultsPage() {
           )}
 
           {/* TESTS */}
-          {status === "complete" && activeSection === "tests" && (
+          {hasCore && activeSection === "tests" && (
             <motion.section key="tests" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
               <div className="mb-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">🔬 All Test Results</h2>
@@ -770,7 +788,7 @@ export default function ResultsPage() {
           )}
 
           {/* CHARTS */}
-          {status === "complete" && activeSection === "chart" && (
+          {hasCore && activeSection === "chart" && (
             <motion.section key="chart" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
               className="space-y-6">
               <h2 className="text-xl font-bold text-gray-900 dark:text-white">📊 Visual Health Overview</h2>

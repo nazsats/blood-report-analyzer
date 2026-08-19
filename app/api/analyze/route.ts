@@ -198,67 +198,104 @@ export async function POST(req: NextRequest) {
       profileConditions ? `Known Chronic Conditions: ${profileConditions}` : '',
     ].filter(Boolean).join('\n');
 
-    const systemPrompt = `You are a world-class functional medicine physician, clinical nutritionist, and preventive health expert with 20+ years of experience. You analyze blood reports with the precision of a top diagnostician and the empathy of a patient educator.
+    /**
+     * The analysis is two prompts, not one, and they run at the same time.
+     *
+     * A single call produced the whole report - markers, predictions, diet,
+     * lifestyle, supplements - in about 2,400 output tokens. Generation time is
+     * roughly linear in output length, so the reader watched a spinner for the
+     * entire thing before seeing a single number, and a long report came
+     * uncomfortably close to the 60s platform ceiling.
+     *
+     * Split by what the reader actually came for. CORE is the report itself:
+     * every marker, what it means, the summary. PLAN is the advice built on top
+     * of it: predictions, food, lifestyle, supplements. Neither needs the
+     * other's output, so they run concurrently and the wall clock becomes the
+     * longer of the two rather than their sum.
+     *
+     * The cost is that both calls read the report, so a scanned image goes
+     * through vision twice - about Rs 0.45 per report. Deliberate trade: the
+     * wait is what people complained about, not the price.
+     */
+    const isPaid = isPro || usingCredit;
 
-${patientContext ? `PATIENT CONTEXT:\n${patientContext}\n` : ''}
+    const PERSONA = `You are a world-class functional medicine physician, clinical nutritionist, and preventive health expert with 20+ years of experience. You analyze blood reports with the precision of a top diagnostician and the empathy of a patient educator.
 
-Your task: produce a DEEPLY PERSONALISED, CLINICALLY RICH health analysis that goes beyond generic advice.
+${patientContext ? `PATIENT CONTEXT:\n${patientContext}\n` : ''}`;
 
-═══════════════════════════════════════
+    const CORE_PROMPT = `${PERSONA}
+
+Your task: read this blood report and explain it. Accuracy on the numbers matters more than anything else here.
+
 ANALYSIS REQUIREMENTS
-═══════════════════════════════════════
 
 1. EXTRACT EVERY SINGLE TEST MARKER shown in the report. Do NOT skip any tests. Include both normal and abnormal results. If there are 30 tests on the page, you must output exactly 30 objects in the "tests" array.
 
-2. FOR EACH ABNORMAL MARKER, identify:
-   - The 2-3 most likely ROOT CAUSES specific to this patient (e.g., lifestyle, diet, genetics, medication side effects, underlying conditions)
-   - The FUTURE HEALTH RISK if this marker stays unaddressed (be specific: "persistent LDL >190 increases cardiovascular event risk by ~30% over 10 years")
-   - A PRECISE 30-90 DAY IMPROVEMENT PLAN referencing the exact value (e.g., "Ferritin of 8 ng/mL → target 50+ ng/mL: take iron bisglycinate 25mg with 500mg Vitamin C away from meals")
-
-3. FUTURE PREDICTIONS: Generate 2-4 conditions the patient may develop in 3-10 years based on the PATTERN of markers — not just individual values. Explain the mechanism clearly.
-
-4. MEDICATION INTERACTIONS: If medications are listed, flag interactions with specific lab values using clinical evidence (e.g., "Metformin depletes B12 — your B12 of 180 pg/mL may reflect this"). Empty array if no medications.
-
-5. SUPPLEMENTS: Only recommend supplements where there is clear deficiency or clinical benefit shown by the markers. Include exact dose, form (e.g., methylcobalamin vs cyanocobalamin), timing, and duration.
-
-6. NUTRITION: Make every meal suggestion specific to the abnormal markers. Every food item must include WHY it helps (e.g., "Lentils — high in folate, which raises your low B12 pathway efficiency").
-
-7. LIFESTYLE: Tie every recommendation to a specific marker (e.g., "Zone 2 cardio 3×/week — proven to lower LDL-C by 5-10% and improve insulin sensitivity for your elevated glucose").
+2. FOR EACH ABNORMAL MARKER, identify the 2-3 most likely ROOT CAUSES specific to this patient (lifestyle, diet, genetics, medication side effects, underlying conditions), and give a PRECISE 30-90 DAY improvement plan referencing the exact value (e.g., "Ferritin of 8 ng/mL to target 50+ ng/mL: iron bisglycinate 25mg with 500mg Vitamin C away from meals").
 
 Return ONLY a single valid JSON object. No markdown, no code fences, no extra text:
 
 {
   "summary": "5-6 sentence professional yet warm summary. Name the 2-3 most significant findings with their values. Explain the pattern you see (e.g., metabolic syndrome cluster). Note what is going well. End with an empowering statement. Reference the patient's context if provided.",
-  "recommendation": "The single most impactful action — very specific (e.g., 'Your ferritin is 8 ng/mL — critically low. Start iron bisglycinate 25mg with Vitamin C 500mg at breakfast, away from coffee. Retest in 8 weeks. This alone may resolve your fatigue within 3-4 weeks.').",
+  "recommendation": "The single most impactful action - very specific (e.g., 'Your ferritin is 8 ng/mL - critically low. Start iron bisglycinate 25mg with Vitamin C 500mg at breakfast, away from coffee. Retest in 8 weeks.').",
   "overallScore": 7.2,
   "riskLevel": "low|moderate|high|critical",
-  "tests": [ // This array MUST contain an object for EVERY single test parameter found in the report. Normal or abnormal, do not skip any.
+  "tests": [
     {
       "test": "Full test name",
       "value": 5.4,
       "unit": "mmol/L",
       "range": "3.9-5.6",
       "flag": "normal|high|low",
-      "explanation": "Plain English: what this test measures and what THIS patient's value means clinically. Mention if it's borderline, trending, or severely abnormal.",
-      "rootCauses": "2-3 specific root causes for THIS patient's abnormal value. Be mechanistic (e.g., 'Your HbA1c of 6.2% is driven by insulin resistance, likely from excess refined carbohydrate intake and sedentary desk work — this is an early warning sign'). Leave empty string for normal results.",
-      "advice": "Specific 30-90 day plan referencing the exact value. Include: (1) dietary changes with specific foods, (2) supplement if applicable with dose, (3) lifestyle change, (4) when to retest. Only for abnormal results."
+      "explanation": "Plain English: what this test measures and what THIS patient's value means clinically. Mention if it is borderline, trending, or severely abnormal.",
+      "rootCauses": "2-3 specific mechanistic root causes for THIS patient's abnormal value. Empty string for normal results.",
+      "advice": "Specific 30-90 day plan referencing the exact value: dietary change with specific foods, supplement with dose if applicable, lifestyle change, and when to retest. Empty string for normal results."
     }
-  ],
+  ]
+}
+
+CRITICAL RULES:
+- YOU MUST EXTRACT EVERY SINGLE TEST ITEM. DO NOT SUMMARIZE OR SKIP ANY ROWS. ALL PARAMETERS SHOWN MUST BE IN THE "tests" ARRAY.
+- value field must be a NUMBER (never a string)
+- Be empathetic - patients are anxious. Acknowledge difficulty where appropriate
+- End summary with genuine encouragement
+- Never use generic phrases like "eat a balanced diet" - always be specific to the markers
+- rootCauses and advice fields: use empty string "" for normal results`;
+
+    const PLAN_PROMPT = `${PERSONA}
+
+Your task: read this blood report and build the ACTION PLAN from it. A colleague is separately writing the marker-by-marker breakdown, so do not repeat it - produce only the forward-looking guidance below.
+
+ANALYSIS REQUIREMENTS
+
+1. FUTURE PREDICTIONS: 2-4 conditions the patient may develop in 3-10 years based on the PATTERN across markers, not individual values. Explain the mechanism clearly.
+
+2. MEDICATION INTERACTIONS: if medications are listed, flag interactions with specific lab values using clinical evidence. Empty array if no medications.
+
+3. SUPPLEMENTS: only where there is clear deficiency or clinical benefit shown by the markers. Include exact dose, form, timing and duration.
+
+4. NUTRITION: every meal suggestion specific to the abnormal markers. Every food item must include WHY it helps.
+
+5. LIFESTYLE: tie every recommendation to a specific marker.
+
+Return ONLY a single valid JSON object. No markdown, no code fences, no extra text:
+
+{
   "futurePredictions": [
     {
       "condition": "Condition name (e.g., Non-alcoholic Fatty Liver Disease)",
       "risk": "low|moderate|elevated|high",
       "timeframe": "e.g., 5-10 years if untreated",
-      "reason": "Mechanistic explanation: 'Your ALT of 52 U/L combined with triglycerides of 210 mg/dL and glucose of 105 mg/dL forms a metabolic pattern associated with hepatic fat accumulation. Without dietary change, NAFLD probability is elevated over the next decade.'",
-      "prevention": "The single most effective evidence-based prevention step — be specific."
+      "reason": "Mechanistic explanation referencing the patient's actual values.",
+      "prevention": "The single most effective evidence-based prevention step - be specific."
     }
   ],
   "medicationAlerts": [
     {
       "medication": "Drug name",
       "marker": "Affected lab test name",
-      "interaction": "Clinical explanation of how this drug affects this specific lab value, referencing the patient's actual number (e.g., 'Metformin interferes with ileal B12 absorption — your B12 of 180 pg/mL is below the 200 pg/mL threshold and may worsen over time on this medication').",
-      "suggestion": "Specific clinical recommendation (e.g., 'Discuss B12 supplementation with your prescriber — methylcobalamin 1000mcg sublingual daily is often recommended for patients on long-term Metformin')."
+      "interaction": "How this drug affects this specific lab value, referencing the patient's actual number.",
+      "suggestion": "Specific clinical recommendation."
     }
   ],
   "healthGoals": [
@@ -267,131 +304,173 @@ Return ONLY a single valid JSON object. No markdown, no code fences, no extra te
     "Third measurable goal"
   ],
   "nutrition": {
-    "focus": "e.g., Anti-inflammatory, Iron-rich & Liver-supportive",
-    "breakfast": ["Specific meal + why (e.g., 'Spinach omelette with pumpkin seeds — iron, folate, and zinc to address your deficiencies')"],
+    "focus": "e.g., Anti-inflammatory, Iron-rich and Liver-supportive",
+    "breakfast": ["Specific meal + why it helps a specific marker"],
     "lunch": ["Specific meal + why"],
     "dinner": ["Specific meal + why"],
     "snacks": ["Specific snack + why"],
-    "avoid": ["Food to avoid + why it worsens a specific marker (e.g., 'Alcohol — directly elevates ALT/AST and worsens your liver enzymes')"]
+    "avoid": ["Food to avoid + why it worsens a specific marker"]
   },
   "lifestyle": {
-    "exercise": "Specific type, frequency, duration — tied to markers (e.g., 'Zone 2 cardio (brisk walk/cycling at 60-70% max HR) 4×/week for 35 min — shown to lower LDL-C by 8% and improve HbA1c by 0.3-0.5% over 12 weeks')",
-    "sleep": "Specific sleep recommendation tied to markers (e.g., '7.5-8.5 hours of sleep is critical — sleep deprivation raises cortisol, which drives glucose up and explains your borderline HbA1c; use a consistent sleep schedule and limit blue light after 9pm')",
-    "stress": "Specific stress intervention tied to markers (e.g., 'Your elevated cortisol pattern (high glucose + low DHEA if tested) responds strongly to diaphragmatic breathing 10 min/day or yoga — proven to reduce fasting glucose by 10-15 mg/dL in 8 weeks')"
+    "exercise": "Specific type, frequency and duration tied to markers, with expected effect sizes.",
+    "sleep": "Specific sleep recommendation tied to markers.",
+    "stress": "Specific stress intervention tied to markers."
   },
   "supplements": [
     {
       "name": "Supplement name + preferred form (e.g., Vitamin D3 as cholecalciferol)",
-      "dose": "Specific dose (e.g., 4000 IU daily with fatty meal)",
-      "reason": "Why needed — reference exact marker value (e.g., 'Your Vitamin D is 18 ng/mL — deficient. Optimal is 50-80 ng/mL. At this level, immune function, bone density, and mood regulation are impaired.')",
-      "duration": "e.g., 12 weeks then retest; ongoing if deficiency persists"
+      "dose": "Specific dose (e.g., 4000 IU daily with a fatty meal)",
+      "reason": "Why needed - reference the exact marker value",
+      "duration": "e.g., 12 weeks then retest"
     }
   ]
 }
 
 CRITICAL RULES:
-- YOU MUST EXTRACT EVERY SINGLE TEST ITEM. DO NOT SUMMARIZE OR SKIP ANY ROWS. ALL PARAMETERS SHOWN IN THE IMAGE MUST BE IN THE "tests" ARRAY.
-- value field must be a NUMBER (never a string)
 - futurePredictions: 2-4 items always
 - medicationAlerts: [] if no medications provided
-- Be empathetic — patients are anxious. Acknowledge difficulty where appropriate
-- End summary with genuine encouragement
-- Never use generic phrases like "eat a balanced diet" — always be specific to the markers
-- rootCauses and advice fields: use empty string "" for normal results`;
+- Never use generic phrases like "eat a balanced diet" - always be specific to the markers`;
 
-    // Free readers get a deliberately shorter answer. It is not a worse one:
-    // it leads with what is most striking about their results, which is what
-    // makes someone want the full breakdown. Paying for depth is an easier
-    // decision than paying to remove an artificial limit.
-    //
-    // One prompt, not two. A second full medical prompt would drift out of
-    // sync with this one within a couple of edits, and a blood report is not
-    // the place to discover that the free tier is following stale rules.
-    const isPaid = isPro || usingCredit;
+    // Free readers get a shorter answer, not a worse one: the numbers stay
+    // complete and only the prose tightens. Depth is what paying buys.
+    const CORE_FREE_BRIEF = `
 
-    const FREE_TIER_BRIEF = `
-
-FREE TIER — LENGTH LIMIT:
-Return the same JSON shape, but keep it brief and high-signal:
-- "tests": still include EVERY marker found, with value, unit, range and status.
-  This is the part the reader came for and must never be truncated.
-- Explanations: one short sentence per abnormal marker; empty string "" for
-  normal ones.
-- "futurePredictions", "supplements", "medicationAlerts": return [] — these are
-  reserved for the full report.
-- "advice": one sentence per field, not a paragraph.
+FREE TIER - LENGTH LIMIT:
+Same JSON shape, but concise:
+- "tests": still EVERY marker with value, unit, range and flag. This is what the
+  reader came for and must never be truncated.
+- "explanation": one short sentence per abnormal marker; "" for normal ones.
+- "rootCauses" and "advice": one sentence each, not paragraphs.
 - "summary": 2-3 sentences, warm and specific to the most notable finding.
-Be accurate and complete on the numbers, concise on the prose.`;
+Accurate and complete on the numbers, concise on the prose.`;
 
-    const finalPrompt = isPaid ? systemPrompt : systemPrompt + FREE_TIER_BRIEF;
+    const PLAN_FREE_BRIEF = `
+
+FREE TIER - LENGTH LIMIT:
+Same JSON shape, but:
+- "futurePredictions", "supplements", "medicationAlerts": return [] - these are
+  reserved for the full report.
+- "nutrition" and "lifestyle": one short item per field.
+- "healthGoals": two brief goals.`;
+
+    const corePrompt = isPaid ? CORE_PROMPT : CORE_PROMPT + CORE_FREE_BRIEF;
+    const planPrompt = isPaid ? PLAN_PROMPT : PLAN_PROMPT + PLAN_FREE_BRIEF;
 
     // gpt-4.1 is cheaper than gpt-4o ($2/$8 vs $2.50/$10 per 1M) and newer.
-    // max_tokens caps the worst case rather than describing the usual one:
-    // measured output is ~2.4k, so 4000 leaves headroom for a report with an
-    // unusually long marker list without leaving an 8000-token bill exposed.
-    console.log(`[API Analyze] Calling OpenAI (${isPaid ? 'full' : 'free'} tier)…`);
-    const completion = await getOpenAI().chat.completions.create({
+    const parseJson = (text: string) => {
+      try {
+        return JSON.parse(text.replace(/```json|```/g, '').trim());
+      } catch (err) {
+        console.error('[API Analyze] JSON parse failed:', err);
+        return null;
+      }
+    };
+
+    const EMPTY_PLAN = {
+      futurePredictions: [] as any[],
+      medicationAlerts: [] as any[],
+      healthGoals: [] as any[],
+      nutrition: { focus: '', breakfast: [], lunch: [], dinner: [], snacks: [], avoid: [] },
+      lifestyle: { exercise: '', sleep: '', stress: '' },
+      supplements: [] as any[],
+    };
+
+    console.log(`[API Analyze] Calling OpenAI x2 concurrently (${isPaid ? 'full' : 'free'} tier)...`);
+    const startedAt = Date.now();
+
+    // Both requests are issued before either is awaited - that is what makes
+    // them concurrent. Awaiting the first here would serialise them and undo
+    // the entire point.
+    const corePending = getOpenAI().chat.completions.create({
       model: 'gpt-4.1',
       messages: [
-        { role: 'system', content: finalPrompt },
+        { role: 'system', content: corePrompt },
         { role: 'user', content: userContent },
       ],
       response_format: { type: 'json_object' },
-      max_tokens: isPaid ? 4000 : 1600,
+      // Sized to this call alone rather than the whole report. Measured core
+      // output is ~1.6k, so this leaves room for an unusually long marker list.
+      max_tokens: isPaid ? 2800 : 1400,
       temperature: 0.1,
     });
 
-    const raw = (completion.choices[0]?.message?.content || '{}')
-      .replace(/```json|```/g, '')
-      .trim();
+    const planPending = getOpenAI().chat.completions.create({
+      model: 'gpt-4.1',
+      messages: [
+        { role: 'system', content: planPrompt },
+        { role: 'user', content: userContent },
+      ],
+      response_format: { type: 'json_object' },
+      max_tokens: isPaid ? 1800 : 700,
+      temperature: 0.1,
+    }).catch((err) => {
+      // Swallowed here so a plan failure can never become an unhandled
+      // rejection when the core call throws first and nothing ever awaits
+      // this. The null is handled where it is consumed.
+      console.error('[API Analyze] plan call rejected:', err);
+      return null;
+    });
 
-    let aiResult: any = {
-      summary: 'Analysis failed to generate structure.',
-      recommendation: '',
-      overallScore: 5,
-      riskLevel: 'moderate',
-      tests: [],
-      futurePredictions: [],
-      medicationAlerts: [],
-      healthGoals: [],
-      nutrition: { focus: '', breakfast: [], lunch: [], dinner: [], snacks: [], avoid: [] },
-      lifestyle: { exercise: '', sleep: '', stress: '' },
-      supplements: [],
-    };
+    // The core call decides whether this request succeeded at all: without the
+    // markers there is no report. Let it reject.
+    const coreCompletion = await corePending;
+    const core = parseJson(coreCompletion.choices[0]?.message?.content || '{}');
 
+    if (!core || !Array.isArray(core.tests) || core.tests.length === 0) {
+      const message = 'We could not read any test results from that file. Try a clearer photo, or upload the PDF instead.';
+      await reportRef.update({ status: 'error', error: message });
+      return NextResponse.json({ error: message }, { status: 422 });
+    }
+
+    // Save the markers the moment they exist, before waiting on the plan. The
+    // results page listens with onSnapshot, so anyone already looking at it
+    // sees their numbers now rather than after the advice finishes. It also
+    // means a plan failure cannot cost the reader the report itself.
+    await reportRef.update({
+      status: 'partial',
+      summary: core.summary ?? '',
+      recommendation: core.recommendation ?? '',
+      overallScore: core.overallScore ?? 5,
+      riskLevel: core.riskLevel ?? 'moderate',
+      tests: core.tests,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    console.log(`[API Analyze] core ready in ${Date.now() - startedAt}ms, ${core.tests.length} markers`);
+
+    // The plan is enrichment. If it fails, the reader still has a complete
+    // marker breakdown, which is the part they came for - so this is caught
+    // rather than allowed to fail the whole request.
+    let plan = EMPTY_PLAN;
     try {
-      const parsed = JSON.parse(raw);
-      aiResult = {
-        ...aiResult,
-        ...parsed,
-        tests: Array.isArray(parsed.tests) ? parsed.tests : [],
-        futurePredictions: Array.isArray(parsed.futurePredictions) ? parsed.futurePredictions : [],
-        medicationAlerts: Array.isArray(parsed.medicationAlerts) ? parsed.medicationAlerts : [],
-        healthGoals: Array.isArray(parsed.healthGoals) ? parsed.healthGoals : [],
-        supplements: Array.isArray(parsed.supplements) ? parsed.supplements : [],
-        nutrition: parsed.nutrition || { focus: '', breakfast: [], lunch: [], dinner: [], snacks: [], avoid: [] },
-        lifestyle: parsed.lifestyle || { exercise: '', sleep: '', stress: '' },
-      };
-    } catch (parseError) {
-      console.error('[API Analyze] JSON parse error, using defaults:', parseError);
-      console.error('[API Analyze] Raw content that failed to parse:', raw);
+      const planCompletion = await planPending;
+      const parsed = planCompletion
+        ? parseJson(planCompletion.choices[0]?.message?.content || '{}')
+        : null;
+      if (parsed) {
+        plan = {
+          futurePredictions: Array.isArray(parsed.futurePredictions) ? parsed.futurePredictions : [],
+          medicationAlerts: Array.isArray(parsed.medicationAlerts) ? parsed.medicationAlerts : [],
+          healthGoals: Array.isArray(parsed.healthGoals) ? parsed.healthGoals : [],
+          supplements: Array.isArray(parsed.supplements) ? parsed.supplements : [],
+          nutrition: parsed.nutrition || EMPTY_PLAN.nutrition,
+          lifestyle: parsed.lifestyle || EMPTY_PLAN.lifestyle,
+        };
+      }
+    } catch (planErr) {
+      console.error('[API Analyze] plan call failed, keeping core result:', planErr);
     }
 
     await reportRef.update({
       status: 'complete',
-      summary: aiResult.summary,
-      recommendation: aiResult.recommendation,
-      overallScore: aiResult.overallScore,
-      riskLevel: aiResult.riskLevel,
-      tests: aiResult.tests,
-      futurePredictions: aiResult.futurePredictions,
-      medicationAlerts: aiResult.medicationAlerts,
-      healthGoals: aiResult.healthGoals,
-      nutrition: aiResult.nutrition,
-      lifestyle: aiResult.lifestyle,
-      supplements: aiResult.supplements,
+      futurePredictions: plan.futurePredictions,
+      medicationAlerts: plan.medicationAlerts,
+      healthGoals: plan.healthGoals,
+      nutrition: plan.nutrition,
+      lifestyle: plan.lifestyle,
+      supplements: plan.supplements,
       updatedAt: FieldValue.serverTimestamp(),
     });
+    console.log(`[API Analyze] complete in ${Date.now() - startedAt}ms`);
 
     // Spend the free allowance only now, on a report that actually completed.
     // Counting at the start would burn someone's one free look on a blurry

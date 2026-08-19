@@ -584,6 +584,15 @@ export default function UploadPage() {
                       onPurchased={() => {
                         setNeedsPayment(false);
                         setError("");
+                        // Straight back into the analysis. The file is still
+                        // selected and they have just paid for exactly this —
+                        // making them find and press Analyse again is a step
+                        // that exists only because it was easier to build.
+                        //
+                        // The short delay lets the Razorpay modal finish
+                        // closing; starting an upload underneath a closing
+                        // overlay looks like nothing happened.
+                        setTimeout(() => { void handleUpload(); }, 400);
                       }}
                     />
                   </div>

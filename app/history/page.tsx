@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { db } from "@/lib/firebaseClient";
+import { db } from "@/lib/firebaseDb";
 import { collection, query, where, orderBy, limit, onSnapshot, deleteDoc, doc, QueryConstraint } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import {

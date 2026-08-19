@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, BellRing, Calendar, Check, X, Plus, Trash2, Clock } from "lucide-react";
-import { db } from "@/lib/firebaseClient";
+import { db } from "@/lib/firebaseDb";
 import { doc, updateDoc, getDoc } from "firebase/firestore";
 import { useAuth } from "@/hooks/useAuth";
 import toast from "react-hot-toast";

@@ -83,8 +83,37 @@ export default function BuyReports({
                 currency: order.currency,
                 name: 'Blood Lab',
                 description: order.pack.label,
-                prefill: { email: user.email ?? '' },
+                prefill: {
+                    email: user.email ?? '',
+                    // Opens on UPI rather than the method chooser. Almost
+                    // everyone paying ₹25 in India pays by UPI, and making them
+                    // pick "UPI" from a list of five options first is a step
+                    // that only ever costs conversions.
+                    method: 'upi',
+                },
                 theme: { color: '#0F766E' },
+
+                // Put the UPI intent flow first. On a phone, `intent` hands off
+                // straight to GPay / PhonePe / Paytm instead of showing a VPA
+                // field and waiting for a collect request the user has to go
+                // find in their bank app. That handoff is the difference
+                // between paying in ten seconds and abandoning.
+                //
+                // show_default_blocks stays true so cards and netbanking are
+                // still reachable underneath — this reorders the options, it
+                // does not remove any.
+                config: {
+                    display: {
+                        blocks: {
+                            upi: {
+                                name: 'Pay by UPI',
+                                instruments: [{ method: 'upi', flows: ['intent', 'collect'] }],
+                            },
+                        },
+                        sequence: ['block.upi'],
+                        preferences: { show_default_blocks: true },
+                    },
+                },
                 handler: async (response: any) => {
                     // Verification is the server's job. Checkout calling this
                     // handler means the payment widget is happy, not that money

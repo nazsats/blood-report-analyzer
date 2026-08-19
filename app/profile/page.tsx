@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRouter } from "next/navigation";
 import React, { useState, useEffect } from "react";
 import { doc, getDoc, setDoc, collection, query, where, orderBy, limit, getDocs, getCountFromServer, QueryConstraint } from "firebase/firestore";
-import { db, storage } from "@/lib/firebaseClient";
+import { db, storage } from "@/lib/firebaseDb";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
